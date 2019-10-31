@@ -3,17 +3,21 @@ import qutip as qt
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib import cm
 import qutip.control.pulseoptim as cpo
 import qutip.logging_utils as logging
 import scipy.optimize as spopt
 import scipy as sp
+import time
+
+print("-------------------------------------------------------------------------------------------------------------\n")
 
 results_folder = "/transmon-cavity_results"
 
 # Constants
 h_bar = 1
 
-cavity_levels = 6
+cavity_levels = 3
 
 # Basic operators
 # Atom(a and a-dagger)
@@ -24,11 +28,11 @@ c = qt.tensor(qt.qeye(2), qt.destroy(cavity_levels))
 cd = c.dag()
 
 # Simulation time and accuracy details
-num_time_steps = 5  # Number of time states for the simulation
+num_time_steps = 50  # Number of time states for the simulation
 total_time = 5  # Total simulation time
 dt = total_time/num_time_steps  # Time step size
 times = np.linspace(0.0, total_time, num_time_steps)  # Time space array
-num_grape_iter = 10
+num_grape_iter = 400
 # Frequencies
 w_a = 1  # Atom(qubit) frequency
 w_c = 1  # Cavity frequency
@@ -37,7 +41,8 @@ g = 1  # Linear photon number dependent dispersive shifts
 # Hamiltonians (Linear/Harmonic)
 H_a = w_a*a*ad  # Atom hamiltonian
 H_c = w_c*c*cd  # Cavity hamiltonian
-H_ac = g * (cd * a + c * ad) # Atom-Cavity interaction hamiltonian
+H_ac = g * (cd * a + c * ad)  # Atom-Cavity interaction hamiltonian
+H_ac = g * ad*a*cd*c  # Atom-Cavity interaction hamiltonian
 H0 = H_a + H_c + H_ac  # Full atom-cavity hamiltonian w/o a derive
 # Drive hamiltonians
 # Atom
@@ -49,12 +54,13 @@ Hc_Q = 1j*(c-cd)
 # Time dependent(controllable) derive hamiltonian list
 H_d = [Ha_I, Ha_Q, Hc_I, Hc_Q]
 
+bl = qt.Bloch()
 
-def get_drive_fields_grape(atom_operator, cavity_operator, disp_graphs=False):
-    # Target state
-    targ = qt.tensor(atom_operator, cavity_operator)
 
-    result = qt.control.grape_unitary(targ, H0, H_d, num_grape_iter, times)
+def get_drive_fields_grape(operator, disp_graphs=False):
+    start_time = time.time_ns()
+
+    result = qt.control.grape_unitary(operator, H0, H_d, num_grape_iter, times)
 
     # Atom(transmon)
     QI_a = result.u[-1, 0, :]
@@ -81,34 +87,53 @@ def get_drive_fields_grape(atom_operator, cavity_operator, disp_graphs=False):
         ax2.set_xlabel('Time (sec)')
         ax2.set_ylabel('Amplitude')
 
+    print("-    Evaluating the control pulses took", str((time.time_ns()-start_time)*1e-9)[0:4], "Seconds")
     return QI_a, QQ_a, QI_c, QQ_c
 
 
 def run_operator(state, QI_a, QQ_a, QI_c, QQ_c):
-    atom_init, cavity_init = qt.ptrace(state, 0), qt.ptrace(state, 1)
+    start_time = time.time_ns()
 
-    prod_atom = 1
-    prod_cavity = 1
+    prod = 1
     for k in range(num_time_steps):
         H = H0 + Ha_I*QI_a[k] + Ha_Q*QQ_a[k] + Hc_I*QI_c[k] + Hc_Q*QQ_c[k]
-        U_atom = ((-1j * dt) * H).expm()
-        U_cavity = ((-1j * dt) * H).expm()
-        prod_atom = U_atom * prod_atom
-        prod_cavity = U_cavity * prod_cavity
-    atom_final = qt.ptrace(prod_atom*state, 0)
-    cavity_final = qt.ptrace(prod_cavity*state, 1)
+        U = ((-1j * dt) * H).expm()
+        prod = U * prod
+        bl.add_states(qt.ptrace(prod * state, 0))
 
-    return atom_final, cavity_final
+    result = prod * state
+
+    print("-    Simulating the system took", str((time.time_ns() - start_time) * 1e-9)[0:4], "Seconds")
+    return result
 
 
-QI_a, QQ_a, QI_c, QQ_c = get_drive_fields_grape(qt.hadamard_transform(), qt.qeye(cavity_levels), disp_graphs=True)
-state_init = qt.tensor(qt.basis(2,0), qt.basis(cavity_levels, 0))
-#atom, cavity = run_operator(qt.tensor(qt.basis(2,0), qt.basis(cavity_levels, 0)), QI_a, QQ_a, QI_c, QQ_c)
-A = [1]*len(QI_a)
-state_final = qt.mesolve([H0, [Ha_I, QI_a], [Ha_Q, QQ_a], [Hc_Q, QQ_c]], [Hc_Q, QQ_c], state_init, times)
-atom = qt.ptrace(state_final, 0)
-bl = qt.Bloch()
-bl.add_states(atom)
-# bl.add_states(cavity)
+state_target = qt.tensor(qt.basis(2, 1), qt.basis(cavity_levels, 0))
+
+QI_a, QQ_a, QI_c, QQ_c = get_drive_fields_grape(state_target, disp_graphs=True)
+
+state_init = qt.tensor(qt.basis(2, 0), qt.basis(cavity_levels, 0))
+
+state_final = run_operator(state_init, QI_a, QQ_a, QI_c, QQ_c)
+
+print("-    Final fidelity:", str(qt.fidelity(state_target, state_final)*100)[0:9] + "%")
+
+bl.add_states(qt.ptrace(state_init, 0))
+bl.add_states(qt.ptrace(state_final, 0))
 bl.show()
-# qt.plot_wigner_fock_distribution(qt.basis(2, 1))
+
+xvec = np.linspace(-5, 5, 500)
+W_init = qt.wigner(state_init, xvec, xvec)
+W_final = qt.wigner(state_final, xvec, xvec)
+
+fig, axes = plt.subplots(1, 2)
+
+axes[0].contourf(xvec, xvec, W_init, 100)
+axes[0].set_title("Initial")
+
+axes[1].contourf(xvec, xvec, W_final, 100)
+axes[1].set_title("Final")
+
+fig.tight_layout()
+plt.show()
+
+print("\n-------------------------------------------------------------------------------------------------------------")

@@ -26,12 +26,14 @@ qd = q.dag()
 psi_initial = basis(2, 0)
 psi_target = basis(2, 1)
 
-Ns = 50
-T = 5
-dt = T/Ns
-times = np.linspace(0.0, T, Ns)
+# Time variables
+Ns = 50  # Number of time steps
+T = 5  # Total time of simulation
+dt = T/Ns  # Time step size
+times = np.linspace(0.0, T, Ns)  # All times array
 
-epsilon_max = 0.1
+# Constraints
+epsilon_max = 0.3
 epsilon_soft_max = 1
 
 
@@ -65,8 +67,8 @@ def main():
 
     result = qt.control.grape_unitary(U_targ, H_d, H_c, NN, times)
 
-    QI = result.u[-1, 0, :] + np.random.random(len(result.u[-1,0,:]))*0.02
-    QQ = result.u[-1, 1, :] + np.random.random(len(result.u[-1,0,:]))*0.02
+    QI = result.u[-1, 0, :] + np.random.random(len(result.u[-1, 0, :]))*0.02*0
+    QQ = result.u[-1, 1, :] + np.random.random(len(result.u[-1, 0, :]))*0.02*0
 
     fig, (ax1, ax2) = plt.subplots(1, 2)
 
@@ -76,7 +78,7 @@ def main():
 
     # Initial guess is random
     QQ = (np.random.random(len(QQ))-1)*0 + 0.01
-    QI = (np.random.random(len(QI))-1)*0+0.01
+    QI = (np.random.random(len(QI))-1)*0 + 0.01
 
     control_vars = list(QI) + list(QQ)
     result = optimize_pulse_unitary_daniel(control_vars, HH, psi_initial, psi_target)
@@ -88,14 +90,15 @@ def main():
     QQ = epsilon_max * np.tanh(xQ)
 
     ax2.set_title("My Grape")
-    ax2.step(times, xQ)
-    ax2.step(times, xI)
+    ax2.step(times, QI)
+    ax2.step(times, QQ)
 
-    print("FINAL FIDELITY: ", fidelitytarg(list(QI) + list(QQ), HH, psi_initial, psi_target))
+    print("Final fidelity: ", (1-fidelitytarg(list(QI) + list(QQ), HH, psi_initial, psi_target))*100, "%")
 
 
 def optimize_pulse_unitary_daniel(x0, H, psi_initial, psi_target):
-    result = spopt.fmin_l_bfgs_b(fidelitytarg_constraints, x0, fidelitytarg_grad_constraints, args=(H, psi_initial, psi_target))
+    result = spopt.fmin_l_bfgs_b(fidelitytarg_constraints, x0, fidelitytarg_grad_constraints, maxiter=1000, pgtol=1e-10,
+                                 args=(H, psi_initial, psi_target))
     return result
 
 
@@ -109,10 +112,9 @@ def fidelitytarg(control_pulses,  HH, psi_initial, psi_target):
         prod = U_k * prod
     psi_final = prod * psi_initial
 
-    fid = np.abs((psi_target.dag()*psi_final).data[0, 0])
     fid = qutip.fidelity(psi_target, psi_final)
 
-    print("\n|<psi | psi_target>|²  fidelity: ", fid, "\n")
+    print("\n-  |<psi | psi_target>|²  fidelity: ", fid*100, "%", "\n")
 
     return 1-fid
 
@@ -130,12 +132,11 @@ def fidelitytarg_constraints(control_pulses,  HH, psi_initial, psi_target):
         prod = U_k * prod
     psi_final = prod * psi_initial
 
-    fid = np.abs((psi_target.dag()*psi_final).data[0, 0])
     fid = qutip.fidelity(psi_target, psi_final)
 
-    print("\n|<psi | psi_target>|²  fidelity: ", fid, "\n")
+    print("\n-  |<psi | psi_target>|²  fidelity: ", fid*100, "%", "\n")
 
-    return 1-(fid - constraint(QI, QQ))
+    return (1 - fid) - constraint(QI, QQ)
 
 
 def fidelitytarg_grad(control_pulses, HH, psi_initial, psi_target):
@@ -186,7 +187,7 @@ def fidelitytarg_grad_constraints(control_pulses, HH, psi_initial, psi_target):
         Uk = ((-1j * dt / h_bar) * H(HH[0], HH[1], HH[2], QI, QQ, k)).expm()
         prod = Uk * prod
     psi_final = prod * psi_initial
-    print(prod*psi_initial)
+    # print(prod*psi_initial)
     # print(fidelitytarg(list(QI) + list(QQ), HH, psi_initial, psi_target))
 
     for k in range(Ns):
@@ -205,21 +206,27 @@ def fidelitytarg_grad_constraints(control_pulses, HH, psi_initial, psi_target):
 
     c_final = []
     for k in range(2*Ns):
-        c_final.append(np.abs((-1j*dt/h_bar)*(psi_bwd[k % Ns].dag()*HH[1 if k < Ns else 2]*psi_fwd[k % Ns]).data[0, 0])/(np.cosh((xI[k] if k < Ns else xQ[k-Ns])**2)))
+        c_final.append(np.abs((-1j*dt/h_bar)*(psi_bwd[k % Ns].dag()*HH[1 if k < Ns else 2]*psi_fwd[k % Ns]).data[0, 0])
+                       / (np.cosh((xI[k] if k < Ns else xQ[k-Ns])**2)))
     return epsilon_max*fidelity(psi_target, psi_final)*np.transpose(c_final)
 
 
 def constraint(QI, QQ):
     constraint_total = 0
     lambda_amp = 0.0001
-    lambda_band = 0
+    lambda_band = -1e10
     for i in range(len(QI)):
         # Amp constraint
-        constraint_total = constraint_total + (QI[i]**2 + QQ[i]**2)*lambda_amp
+        # constraint_total = constraint_total + (QI[i]**2 + QQ[i]**2)*lambda_amp
+
         # Bandwith constraint
-        if i != (len(QI)-1):
-            constraint_total = constraint_total + (np.exp(((QI[i + 1] - QI[i]) ** 2 + (QQ[i + 1] - QQ[i]) ** 2)/(epsilon_soft_max**2))-1)*lambda_band
-            # print("CONSSSTTT  ", ((QI[i + 1] - QI[i]) ** 2 + (QQ[i + 1] - QQ[i]) ** 2)*lambda_band)
+        # if i != (len(QI)-1):
+        #     constraint_total = constraint_total + (np.exp(((QI[i + 1] - QI[i]) ** 2 + (QQ[i + 1] - QQ[i]) ** 2)
+        #                                                   / (epsilon_soft_max**2))-1)*lambda_band
+        if i != (len(QI) - 1):
+            constraint_total = constraint_total + lambda_band*(np.abs((QI[i + 1] - QI[i]) ** 2
+                                                                     + (QQ[i + 1] - QQ[i]) ** 2))
+    print("Constraint Total: ", constraint_total)
     return constraint_total
 
 
