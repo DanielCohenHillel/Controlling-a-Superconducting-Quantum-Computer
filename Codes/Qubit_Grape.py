@@ -20,7 +20,7 @@ qd = q.dag()
 psi0 = basis(2, 0)
 
 # Number of time division
-Ns = 2000
+Ns = 20
 # Time of simulation evolution
 T = 1
 dt = T/Ns
