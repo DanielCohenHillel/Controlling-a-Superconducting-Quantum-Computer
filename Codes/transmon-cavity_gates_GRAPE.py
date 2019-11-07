@@ -24,11 +24,11 @@ c = qt.tensor(qt.qeye(2), qt.destroy(cavity_levels))
 cd = c.dag()
 
 # Simulation time and accuracy details
-num_time_steps = 5  # Number of time states for the simulation
+num_time_steps = 50  # Number of time states for the simulation
 total_time = 5  # Total simulation time
 dt = total_time/num_time_steps  # Time step size
 times = np.linspace(0.0, total_time, num_time_steps)  # Time space array
-num_grape_iter = 10
+num_grape_iter = 50
 # Frequencies
 w_a = 1  # Atom(qubit) frequency
 w_c = 1  # Cavity frequency
@@ -37,7 +37,7 @@ g = 1  # Linear photon number dependent dispersive shifts
 # Hamiltonians (Linear/Harmonic)
 H_a = w_a*a*ad  # Atom hamiltonian
 H_c = w_c*c*cd  # Cavity hamiltonian
-H_ac = g * (cd * a + c * ad) # Atom-Cavity interaction hamiltonian
+H_ac = g * (cd * a + c * ad)  # Atom-Cavity interaction hamiltonian
 H0 = H_a + H_c + H_ac  # Full atom-cavity hamiltonian w/o a derive
 # Drive hamiltonians
 # Atom
@@ -80,6 +80,7 @@ def get_drive_fields_grape(atom_operator, cavity_operator, disp_graphs=False):
         ax2.legend(("I", "Q"))
         ax2.set_xlabel('Time (sec)')
         ax2.set_ylabel('Amplitude')
+        plt.show()
 
     return QI_a, QQ_a, QI_c, QQ_c
 
@@ -101,14 +102,6 @@ def run_operator(state, QI_a, QQ_a, QI_c, QQ_c):
     return atom_final, cavity_final
 
 
-QI_a, QQ_a, QI_c, QQ_c = get_drive_fields_grape(qt.hadamard_transform(), qt.qeye(cavity_levels), disp_graphs=True)
-state_init = qt.tensor(qt.basis(2,0), qt.basis(cavity_levels, 0))
-#atom, cavity = run_operator(qt.tensor(qt.basis(2,0), qt.basis(cavity_levels, 0)), QI_a, QQ_a, QI_c, QQ_c)
-A = [1]*len(QI_a)
-state_final = qt.mesolve([H0, [Ha_I, QI_a], [Ha_Q, QQ_a], [Hc_Q, QQ_c]], [Hc_Q, QQ_c], state_init, times)
-atom = qt.ptrace(state_final, 0)
-bl = qt.Bloch()
-bl.add_states(atom)
-# bl.add_states(cavity)
-bl.show()
-# qt.plot_wigner_fock_distribution(qt.basis(2, 1))
+QI_a, QQ_a, QI_c, QQ_c = get_drive_fields_grape(qt.hadamard_transform(),
+                                                qt.qeye(cavity_levels),
+                                                disp_graphs=True)
