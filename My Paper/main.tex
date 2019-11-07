@@ -1,21 +1,25 @@
 % Write about states and density matrices
-% Add appendix about the JC interaction Hamiltonian
+% Add appendix about the JC interaction Hamiltonian and sisspertion
+% Add appendix about quantum optics, coherent states, fock states
 
 \documentclass{article}
 \usepackage[utf8]{inputenc}
 \usepackage{physics}
-
-\usepackage{color} 
+\usepackage{appendix}
+\usepackage{amsfonts}
+\usepackage{color}
 \usepackage{hyperref}
 \hypersetup{
-    colorlinks=true, 
-    linktoc=all,   
-    linkcolor=black,  
+    colorlinks=true,
+    linktoc=all,
+    linkcolor=black,
 }
 
 \title{Controlling a Superconducting Quantum Computer}
 \author{Daniel Cohen Hillel}
 \date{}
+
+\numberwithin{equation}{section}
 
 \begin{document}
 
@@ -49,23 +53,39 @@ So what is a quantum computer then? Well, if the classical computer uses bits to
 
 \subsection{The Oscillator}
 
-\subsection{Describing the System Mathematically}
+\subsection{Describing the System Mathematically}  % Metntion the JC model
 To describe the system mathematically we are going to calculate it's Hamiltonian, that way we can run simulations of the system with the Schrodinger equation.\par
 We can partition the system into different parts and analyse each part individually, so the total system Hamiltonian will be:
-$$H(t) = H_{Oscillator} + H_{Transmon}+ H_{Interaction} + H_{Drive}(t)$$
+
+\begin{equation}
+H(t) = H_{Oscillator} + H_{Transmon}+ H_{Interaction} + H_{Drive}(t)
+\end{equation}
+
 We'll begin by the easy to characterize, Transmon And Oscillator, they are a simple quantum system that can be described by the uppering and lowering operators \footnote{See appendix A}. We can write:
-$$H_{Oscillator} = \omega_C a^\dag{}a$$
-$$H_{Transmon} = \omega_T b^\dag{}b$$
+\begin{equation}
+H_{Oscillator} = \omega_C a^\dag{}a
+\end{equation}
+\begin{equation}
+H_{Transmon} = \omega_T b^\dag{}b
+\end{equation}
 We can find $\omega_C$ and $\omega_T$ experementally. % Maybe add a few words about how to do so and about the fact that this is only an harmonic approximation
 \par
 The next part to characterize is the interaction(See appendix A), again by the Jaynes–Cummings model, we can write the interaction hamiltonian as:
-$$H_{Interaction} = \chi a^\dag{} a  b^\dag{} b$$ % Again, this is only an harmonic approximation
+\begin{equation}
+H_{Interaction} = \chi a^\dag{} a  b^\dag{} b % Again, this is only an harmonic approximation
+\end{equation}
 Again, we can measure $\chi$ experimentally.  % Maybe add more about how it's done
 \par
 Finally, we can characterize the driven and most important part of the system. It can be written as: % Add more about how do you get to that equation. Is it from Maxwell?
-$$H_{Drive} = \epsilon_C(t)a + \epsilon_T(t)b + h.c.$$
+
+\begin{equation}
+H_{Drive} = \epsilon_C(t)a + \epsilon_T(t)b + h.c.
+\end{equation}
 Or as(expanding the hermitian conjurgate):
-$$H_{Drive} = \epsilon_{I_C}(t)(a + a^\dag{}) + \epsilon_{Q_C}(t)(a - a^\dag{})i + \epsilon_{I_T}(t)(b + b^\dag{})+ \epsilon_{Q_T}(t)(a - a^\dag{})i$$
+
+\begin{equation}
+H_{Drive} = \epsilon_{I_C}(t)(a + a^\dag{}) + \epsilon_{Q_C}(t)(a - a^\dag{})i + \epsilon_{I_T}(t)(b + b^\dag{})+ \epsilon_{Q_T}(t)(a - a^\dag{})i
+\end{equation}
 
 \newpage
 \section{Optimal Control}
@@ -76,39 +96,61 @@ To answer this question, we can model our system on a normal computer and simula
 So what's GRAPE than? The *GR*adient *A*scent *P*ulse *E*ngineering was first proposed in [2]. When we model our system, we treat the wave as a step-wise constant function, so the wave is just an array with many variables and we want to find the best values that give the result that we want. then we set a cost function \footnote{discussed in details in the next section} that tells us how are the values of the wave to give the wanted result. This cost function is a many dimensional function(each step of the wave is a dimension of the cost function), and we can find its gradient. Using the cost function and it's gradient we can use some optimization algorithm(mainly, the L-BFGS-B method) to find the maximum of the cost function that gives us the optimal wave to send to the cavity.
 
 \subsection{The Cost Function}
-So what is this cost function really? \textit{\textbf{Fidelity}}. It measures the "closeness" of two quantum states and it's a value from 0 to 1. So for example, the fidelity between state $\bra{0}$ and state $\bra{1}$ is equal to 0, because they are the most different two quantum states can be, while for example the fidelity between state $\bra{0}$ and state $\bra{0}$ is equal to 1, because they are the closest two states can be to each other(for a matter of fact, every state has fidelity 1 with itself and end fidelity 0 with an opposite state). But still, how do we calculate the fidelity between two states? well, turns out its very simple, it's just their product \footnote{Assuming both states are pure states}. We can write:
-$$F(\psi_1, \psi_2) = \abs{\braket{\psi_1}{\psi_2}}^2$$
+So what is this cost function really? \textit{\textbf{Fidelity}}. It measures the "closeness" of two quantum states and varies between 0 and 1. So for example, the fidelity between state $\ket{0}$ and state $\ket{1}$ is equal to 0, because they are the most different two quantum states can be, while for example the fidelity between state $\ket{0}$ and state $\ket{0}$ is equal to 1, because they are the closest two states can be to each other(for a matter of fact, every state has fidelity 1 with itself and end fidelity 0 with an opposite state). But still, how do we calculate the fidelity between two states? well, turns out its very simple, it's just their product \footnote{Assuming both states are pure states}. We can write:
+
+\begin{equation}
+F(\psi_1, \psi_2) = \abs{\braket{\psi_1}{\psi_2}}^2
+\end{equation}
 We want to maximize the fidelity with GRAPE.\par
 In a previous chapter we characterized the Hamiltonian of the system(equation (num)), so now we can use the good old \textit{time-dependent Schrodinger equation}:
-$$i\hbar\frac{d}{dt}\ket{\Psi(t)} = \hat{H}\ket{\Psi(t)}$$
+
+\begin{equation}
+i\hbar\frac{d}{dt}\ket{\Psi(t)} = \hat{H}\ket{\Psi(t)}
+\end{equation}
 
 And also, the Hamiltonian of the system is in the form\footnote{Further details were given in section 2.4}:
-$$H(t) = H_0 + \sum_k{\epsilon_k(t) H_k}$$ % Maybe put the next part before the part about the Schrodinger equation
+
+\begin{equation}
+H(t) = H_0 + \sum_k{\epsilon_k(t) H_k} % Maybe put the next part before the part about the Schrodinger equation
+\end{equation}
+
 Because of the way this Hamiltonian is built, on each constant step of the wave function, the Hamiltonian is constant, and luckily for us, the solution of the Schrodinger equation for a constant Hamiltonian is pretty simple and given by\footnote{Add a simple justification}
 
-$$U(t) = e^{-\frac{i}{\hbar}\int_{T_0}^{T_1}H(t)dt}$$
+\begin{equation}
+U(t) = e^{-\frac{i}{\hbar}\int_{T_0}^{T_1}H(t)dt}
+\end{equation}
 
 And because we chose $T_0$ and $T_1$ as the end points of a step of the functions, the total Hamiltonian of the system is constant so the integral is just a simple multiplication by $T_1-T_0$ which we'll write as $\delta t$. So the solution is
 
-$$U(t) = e^{-\frac{i\cdot \delta t}{\hbar}H(t)}$$
+\begin{equation}
+U(t) = e^{-\frac{i\cdot \delta t}{\hbar}H(t)}
+\end{equation}
 
-More then that, to solution over all time is the product of all the solutions for each constant piece. So 
+More then that, to solution over all time is the product of all the solutions for each constant piece. So
 
-$$U(\epsilon(t)) = \prod_{k = 1}^NU_k$$
+\begin{equation}
+U(\epsilon(t)) = \prod_{k = 1}^NU_k
+\end{equation}
 
 Where N is the number of time steps in the simulation(larger N is a more precise simulation). \par
 This way the state of the qubit after the drive is given by:
 
-$$\ket{\Psi_{final}} = U\ket{\Psi_{initial}}$$
+\begin{equation}
+\ket{\Psi_{final}} = U\ket{\Psi_{initial}}
+\end{equation}
 
 This way if we want to calculate the fidelity after applying the drives we can simply calculate the fidelity between the wanted state and the final state,
 
-$$F(\Vec{\epsilon(t)}) = F(\Psi_{target}, \Psi_{final}) = \abs{\bra{\Psi_{target}}U\ket{\Psi_{initial}}}^2$$
-
+\begin{equation}
+F(\Vec{\epsilon(t)}) = F(\Psi_{target}, \Psi_{final}) = \abs{\bra{\Psi_{target}}U\ket{\Psi_{initial}}}^2
+\end{equation}
+m
 Now, theoretically we can use an algorithm to try different waves until we find a wave that does what we want(brute force for example), but this will take to much time and the computation won't finish in any reasonable amount of time. Because of this, we'll want to use a smart search algorithm(such as L-BFGS-B) but to do so we need the gradient of the cost function(the variables of the cost function are the values of the steps of the drive pulses). We can obviously use the finite difference method to calculate the gradient but this method is heavy on the computation and has a lot of over head. We'll take a smarter approach to calculating the gradient.\par
 We can look at the expression,  % Needs to go over this
 
-$$c = \braket{\Psi_{target}}{\Psi_{final}} = \bra{\Psi_{target}}U\ket{\Psi_{initial}}$$
+\begin{equation}
+c = \braket{\Psi_{target}}{\Psi_{final}} = \bra{\Psi_{target}}U\ket{\Psi_{initial}}
+\end{equation}
 
 We want to differentiate this expression by each control parameter. U is defined as:
 
@@ -138,4 +180,159 @@ We can use a bit different method to calculate the gradient to save on the compu
 
 \newpage
 
+\appendix
+\section{The Jaynes–Cummings Model}
+Our goal is to mathematically model the Hamiltonian of a system of a two-level atom interacting with a single quantized mode of an optical cavity's electromagnetic field. %Add details about the original paper by Edwin Jaynes and Fred Cummings
+\par
+First we'll divide the system into 3 parts, The atom(it can be other two-level quantum systems), the cavity(electromagnetic field with quantized modes) and the interaction between the atom and the cavity(an atom can emit a photon to the cavity and change it's electromagnetic field, or catch a photon from the cavity and go up an energy level).\par  % http://aliramadhan.me/files/jaynes-cummings-model.pdf
+Let's start with the cavity(we'll consider a one dimensional cavity for now). Maxwell's equations in free space are:
+
+\begin{equation}
+    \label{eq:Maxwell-1}
+    \grad \cdot \textbf{E} = 0
+\end{equation}
+\begin{equation}
+    \label{eq:Maxwell-2}
+    \grad \cdot \textbf{B} = 0
+\end{equation}
+\begin{equation}
+    \label{eq:Maxwell-3}
+    \grad \cross \textbf{E} = \frac{\partial\textbf{B}}{\partial t}
+\end{equation}
+\begin{equation}
+    \label{eq:Maxwell-4}
+    \grad \cross \textbf{B} = \mu_0 \epsilon_0 \frac{\partial\textbf{E}}{\partial t}
+\end{equation}
+
+Taking the curl of \ref{eq:Maxwell-3} and \ref{eq:Maxwell-4} we get
+\begin{equation}
+    \label{eq:curl-E}
+    \curl{(\curl{E})} = \curl{(-\frac{\partial B}{\partial t})} = -\frac{\partial}{\partial t}(\curl{B}) = - \mu_0 \epsilon_0 \frac{\partial^2 E}{\partial t^2}
+\end{equation}
+\begin{equation}
+    \label{eq:curl-B}
+    \curl{(\curl{B})} = \curl{(\mu_0 \epsilon_0 \frac{\partial E}{\partial t})} = \mu_0 \epsilon_0\frac{\partial}{\partial t}(\curl{E}) = - \mu_0 \epsilon_0 \frac{\partial^2 B}{\partial t^2}
+\end{equation}
+
+We can use the vector identity
+\begin{equation}
+    \nabla \times \left( \nabla \times \mathbf{V} \right) = \nabla \left( \nabla \cdot \mathbf{V} \right) - \nabla^2 \mathbf{V}
+\end{equation}
+And obtain from \ref{eq:curl-E} and \ref{eq:curl-B}
+\begin{equation}
+    \nabla(\nabla \cdot E) - \nabla^2 E = -\mu_0\epsilon_0\frac{\partial^2 E}{\partial t^2}
+\end{equation}
+\begin{equation}
+    \nabla(\nabla \cdot B) - \nabla^2 B = -\mu_0\epsilon_0\frac{\partial^2 B}{\partial t^2}
+\end{equation}
+Now, we can use \ref{eq:Maxwell-1} and \ref{eq:Maxwell-2} To cancel the left most term and get
+\begin{equation}
+    \nabla^2 E = \mu_0\epsilon_0\frac{\partial^2 E}{\partial t^2}
+\end{equation}
+\begin{equation}
+    \nabla^2 B = \mu_0\epsilon_0\frac{\partial^2 B}{\partial t^2}
+\end{equation}
+Now because we know that $v_{ph} = \frac{1}{\sqrt{\mu_0\epsilon_0}}$ and that the phase velocity of electromagnetic waves in a vacuum is the speed of light, $c_0$, we get
+
+\begin{equation} \label{eq:Homo_electro_wave}
+    \begin{split}
+        \nabla^2 E = \frac{1}{c_0^2}\frac{\partial^2 E}{\partial t^2} \\
+        \nabla^2 B = \frac{1}{c_0^2}\frac{\partial^2 B}{\partial t^2}
+    \end{split}
+\end{equation}
+% Check these equations with serge
+These equation are called \textit{the homogeneous electromagnetic wave equations}.
+We'll pick a polarization arbitrarily to be in the x direction(that way we get only the component of the electric field and the y component of the magnetic field, $E_x$ and $B_y$) so now we get,
+\begin{equation} \label{eq:Homo_electro_wave_pol}
+    \begin{split}
+        \frac{\partial^2 E_x}{\partial x^2} = \frac{1}{c_0^2}\frac{\partial^2 E_x}{\partial t^2} \\
+        \frac{\partial^2 B_y}{\partial y^2} = \frac{1}{c_0^2}\frac{\partial^2 B_y}{\partial t^2}
+    \end{split}
+\end{equation}
+We can easily solve \ref{eq:Homo_electro_wave_pol} using separation of variables,
+$$E_x(z, t)= Z(z)T(t)$$
+Yielding the solution,
+\begin{equation}
+    \begin{split}
+        E_x(z, t) = \sqrt{\frac{2 \omega_c^2}{V \epsilon_0}}q(t)\sin{kz} \\
+        B_y(z, t) = \sqrt{\frac{2 \mu_0}{V}}\dot{q}(t)\cos{kz}
+    \end{split}
+\end{equation}
+where $V$ is the effective volume of the cavity, $q$ is a time-dependent amplitude with units of length, and $k = m\pi/L$ for
+an integer $m > 0$
+
+The Hamiltonian is given by
+\begin{equation}
+    \begin{split}
+        H = \frac{1}{2}\int\epsilon_0 \textbf{E}^2 + \frac{\textbf{B}^2}{\mu_0} dV \\
+        = \frac{1}{2}\int\epsilon_0 E_x^2(z, t) + \frac{B_y^2(z, t)}{\mu_0} dz \\
+        = \frac{1}{2}[\dot{q}^2(t) + \omega_c^2 q^2(t)]
+    \end{split}
+\end{equation}
+This looks like the Hamiltonian of an harmonic oscillator.
+
+Now, going from dynamical variables to operators(considering $\dot{q} \equiv p$) we get,
+\begin{equation}
+    \begin{split}
+         \hat{E}_x(z, t) = \sqrt{\frac{2 \omega_c^2}{V \epsilon_0}}\hat{q}(t)\sin{kz} \\
+         \hat{B}_y(z, t) = \sqrt{\frac{2 \mu_0}{V}}\hat{p}(t)\cos{kz} \\
+         \hat{H} = \frac{1}{2}[\hat{p}^2(t) + \omega_c^2 \hat{q}^2(t)]
+    \end{split}
+\end{equation}
+
+Let’s introduce creation and annihilation operators,
+
+$$\hat{a}(t) = \frac{1}{\sqrt{2\hbar\omega_c}}[\omega_c\hat{q}(t) + i\hat{p}(t)]$$
+$$\hat{a}^\dag(t) = \frac{1}{\sqrt{2\hbar\omega_c}}[\omega_c\hat{q}(t) - i\hat{p}(t)]$$
+
+We can write the electric and magnetic field as,
+
+\begin{equation}
+    \begin{split}
+         \hat{E}_x(z, t) = E_0[\hat{a}(t) + \hat{a}^\dag(t)]\sin{kz} \\
+         \hat{B}_y(z, t) = \frac{E_0}{c}[\hat{a}(t) - \hat{a}^\dag(t)]\cos{kz}
+    \end{split}
+\end{equation}
+And we can write the Hamiltonian as,
+\begin{equation}
+    \hat{H} = \hat{H}_{cavity} = \hbar\omega_c[\hat{a}\hat{a}^\dag + \frac{1}{2}] \approx \hbar\omega_c\hat{a}\hat{a}^\dag
+\end{equation}
+We can ignore the zero-point energy $\frac{\hbar\omega_c}{2}$ if we define it as the zero energy point.
+
+Now that we have the cavity's Hamiltonian, we can go on to calculate the atom(qubit) Hamiltonian. \newline
+Remember that the qubit is a 2-level system, meaning we can define it has a superposition of the ground, $\ket{g}$, and excited, $\ket{e}$, states. The energy of the atom is the sum of the energy of each state times it's energy($\sum E_sP(\ket{s})$). The probabilty to be in a state $\ket{s}$ is given by $\ket{s}\bra{s}$ so we can write,
+\begin{equation}
+    \hat{H}_{atom} = E_g\ket{g}\bra{g} + E_e\ket{e}\bra{e}
+\end{equation}
+Using the vector representation of these states we'll write,
+\begin{equation}
+    \begin{split}
+        \hat{H}_{atom} =
+        \begin{bmatrix}
+        E_e & 0     \\
+        0   & E_g   \\
+        \end{bmatrix} \\
+        = \frac{1}{2}\begin{bmatrix}
+        E_g + E_e & 0          \\
+        0         & E_g + E_e  \\
+        \end{bmatrix} +
+        \frac{1}{2}\begin{bmatrix}
+        E_e - E_g & 0          \\
+        0         & -(E_e - E_g)  \\
+        \end{bmatrix} \\
+        = \frac{1}{2}(E_g + E_e)\begin{bmatrix}
+        1 & 0          \\
+        0         & 1  \\
+        \end{bmatrix} +
+        \frac{1}{2}(E_e - E_g)\begin{bmatrix}
+        1 & 0          \\
+        0         & -1  \\
+        \end{bmatrix} \\
+        = \frac{1}{2}(E_g + E_e)\mathbb{I} + \frac{1}{2}(E_e - E_g)\hat{\sigma}_z
+    \end{split}
+\end{equation}
+Again, we can define the zero point energy so that the first term becomes $0$. We know the difference between the excited state energy and the ground state energy because it's approximately an harmonic osscilator so $E_e - E_g = \hbar\omega_a$ where $\omega_a$ is the atom frequancy. Now we can write,
+\begin{equation}
+    \hat{H}_{atom} = \frac{1}{2}\hbar\omega_a\hat{\sigma}_z
+\end{equation}
 \end{document}

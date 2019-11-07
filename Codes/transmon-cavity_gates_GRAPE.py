@@ -28,11 +28,11 @@ c = qt.tensor(qt.qeye(2), qt.destroy(cavity_levels))
 cd = c.dag()
 
 # Simulation time and accuracy details
-num_time_steps = 200  # Number of time states for the simulation
-total_time = 5  # Total simulation time
+num_time_steps = 50  # Number of time states for the simulation
+total_time = 20  # Total simulation time
 dt = total_time/num_time_steps  # Time step size
 times = np.linspace(0.0, total_time, num_time_steps)  # Time space array
-num_grape_iter = 1000
+num_grape_iter = 10000
 # Frequencies
 w_a = 1  # Atom(qubit) frequency
 w_c = 1  # Cavity frequency
@@ -60,7 +60,7 @@ bl = qt.Bloch()
 def get_drive_fields_grape(operator, disp_graphs=False):
     start_time = time.time_ns()
 
-    U_start = np.random.random([4, num_time_steps])/5.0
+    U_start = np.ones([4, num_time_steps])/7.0
     result = qt.control.grape_unitary(operator, H0, H_d, num_grape_iter, times, u_start=U_start)
 
     # Atom(transmon)
@@ -102,8 +102,8 @@ def run_operator(state, QI_a, QQ_a, QI_c, QQ_c, show_fid_graph=False):
         H = H0 + Ha_I*QI_a[k] + Ha_Q*QQ_a[k] + Hc_I*QI_c[k] + Hc_Q*QQ_c[k]
         U = ((-1j * dt) * H).expm()
         prod = U * prod
-        bl.add_states(qt.ptrace(prod * state, 0))
-        fid.append(qt.fidelity(prod*state, state_target))
+        bl.add_states(qt.ptrace(prod * state, 0), kind="point")
+        fid.append(qt.fidelity(prod*state, state_target*state_init))
 
     result = prod * state
 
@@ -119,7 +119,7 @@ def run_operator(state, QI_a, QQ_a, QI_c, QQ_c, show_fid_graph=False):
 
 
 state_init = qt.tensor(qt.basis(2, 0), qt.basis(cavity_levels, 0))
-state_target = qt.tensor(qt.basis(2, 0), qt.basis(cavity_levels, 1))
+state_target = qt.tensor(qt.qeye(2), qt.create(cavity_levels, 1))
 
 QI_a, QQ_a, QI_c, QQ_c = get_drive_fields_grape(state_target, disp_graphs=True)
 
@@ -134,8 +134,9 @@ bl.show()
 xvec = np.linspace(-5, 5, 500)
 W_init = qt.wigner(qt.ptrace(state_init, 1), xvec, xvec)
 W_final = qt.wigner(qt.ptrace(state_final, 1), xvec, xvec)
+W_target = qt.wigner(qt.ptrace(state_target*state_init, 1), xvec, xvec)
 
-fig, axes = plt.subplots(1, 2)
+fig, axes = plt.subplots(1, 3)
 
 axes[0].contourf(xvec, xvec, W_init, 100)
 axes[0].set_title("Initial")
@@ -143,10 +144,13 @@ axes[0].set_title("Initial")
 axes[1].contourf(xvec, xvec, W_final, 100)
 axes[1].set_title("Final")
 
+axes[2].contourf(xvec, xvec, W_target, 100)
+axes[2].set_title("Target")
+
 fig.tight_layout()
 plt.show()
 
-print("\n--\nInit: " + str(state_init) + "\n")
-print("Final: " + str(state_final) + "\n--\n")
+# print("\n--\nInit: " + str(state_init) + "\n")
+# print("Final: " + str(state_final) + "\n--\n")
 
 print("\n-------------------------------------------------------------------------------------------------------------")
