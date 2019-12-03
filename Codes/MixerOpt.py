@@ -16,12 +16,7 @@ def optimize():
     qmManager = QuantumMachinesManager(host='132.77.48.245')
 
     # Initial guess for the best offsets
-    offsets = [-0.08712208, 0.02583852]
-    DC_I = offsets[0]
-    DC_Q = offsets[1]
-
-    # Initial guess for correction variables
-    corvars = [0, 1]
+    offsets = [-0.08712208, 0.02583852] DC_I = offsets[0] DC_Q = offsets[1] # Initial guess for correction variables corvars = [0, 1]
     correction = calc_cmat(corvars[0], corvars[1])
 
     # Searching parameters, range of parameters for brute force, num of step in the brute force and max iteration fmin
@@ -131,8 +126,9 @@ def power(offsets, corvars, qm, inst, searchfor):
     p = inst.get('power')
 
     # Prints the result of each iteration
-    print("Offsets [DC_I, DC_Q]: " + str(offsets) + "  |  Correction variables [theta, k]: " + str(corvars) + " => "
-          + str(p))
+    print("Offsets [DC_I, DC_Q]: " + str(offsets) 
+            + "  |  Correction variables [theta, k]: " 
+            + str(corvars) + " => " + str(p))
 
     return p  # Return the power of the leakage frequency
 

@@ -7,30 +7,123 @@
 \usepackage{physics}
 \usepackage{appendix}
 \usepackage{amsfonts}
+\usepackage{color} 
+\usepackage{textcomp}
+\usepackage[T1]{fontenc, url}
+\usepackage{titlesec}
+\setcounter{secnumdepth}{4}
+\usepackage{multirow}
+\usepackage{minted} % Code highlighting
+\usepackage{adjustbox}
+\usepackage{graphicx}
+\usepackage{amsmath, amssymb, amsthm} % Mathematical packages
+\usepackage{parskip} % Removing indenting in new paragraphs
+\urlstyle{sf}
 \usepackage{color}
+\usepackage{subcaption} 
+\usepackage{appendix}
+\usepackage{chngcntr} % needed for correct table numbering
+\counterwithin{table}{section} % numbering of tables 
+\counterwithin{figure}{section} % numbering of figures
+\numberwithin{equation}{section} % numbering of equations
+\hyphenpenalty=100000 % preventing splitting of words
+\sloppy 
+\raggedbottom 
+\usepackage{xparse,nameref}
+\usepackage[bottom]{footmisc} % Fotnotes are fixed to bottom of page
+\usepackage{lipsum} % For genereating dummy text
 \usepackage{hyperref}
 \hypersetup{
-    colorlinks=true,
-    linktoc=all,
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
     linkcolor=black,
+    urlcolor=black
 }
 
-\title{Controlling a Superconducting Quantum Computer}
-\author{Daniel Cohen Hillel}
-\date{}
+\usepackage[margin=2.54cm]{geometry} % sets margins for the document
+\usepackage{setspace}
+\linespread{1.5} % line spread for the document
+\usepackage{microtype}
 
-\numberwithin{equation}{section}
+\titleformat*{\section}{\LARGE\bfseries} % \section heading
+\titleformat*{\subsection}{\Large\bfseries} % \subsection heading
+\titleformat*{\subsubsection}{\large\bfseries} % \subsubsection heading
+
+\titleformat{\paragraph}
+{\normalfont\normalsize\bfseries}{\theparagraph}{1em}{}
+\titlespacing*{\paragraph}
+{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+
+
+% ----- Figures and tables ----- 
+\usepackage{fancyhdr}
+\usepackage{subfiles}
+\usepackage{array}
+\usepackage[rightcaption]{sidecap}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage[labelfont=bf]{caption} % bold text for captions
+\usepackage[para]{threeparttable} % fancy tables, check these before you use them
+\usepackage{url}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{makecell}
+\usepackage{hhline}
+
+
+% ----- Sources -----
+\usepackage{natbib}
+\bibliographystyle{apa} % citation and reference list style
+\def\biblio{\clearpage\bibliographystyle{apa}\bibliography{References.bib}} % defines the \biblio command used for referencing in subfiles - DO NOT CHANGE
+
+
+% ----- Header and footer -----
+\pagestyle{fancy}
+\fancyhead[R]{\thepage} % page number on right for odd pages and left for even pages in the header
+\fancyhead[L]{\nouppercase{\rightmark}} % chapter name and number on the right for even pages and left for odd pages in the header
+%\renewcommand{\headrulewidth}{0pt} % sets thickness of header line
+\fancyfoot{} % removes page number on bottom of page
+
+
+% ----- Header of the frontpage ----- 
+\fancypagestyle{frontpage}{
+	\fancyhf{}
+	\renewcommand{\headrulewidth}{0pt}
+	\renewcommand{\footrulewidth}{0pt}
+	\vspace*{1\baselineskip}
+	
+	\fancyhead[C]{Project for The Open University of Israel
+	\linebreak       Done at The Weizmann Institute of Science\vspace*{5\baselineskip}}
+	\fancyhead[L]{ \includegraphics[width=1.2in]{Logo.png}}
+	\fancyhead[R]{ \includegraphics[width=1.2in]{OpenLogo.jpg}}
+}
+
+
+%-----------------------------------------------------
+
+%\title{Controlling a Superconducting Quantum Computer}
+%\author{Daniel Cohen Hillel}
+%\date{}
 
 \begin{document}
 
-\maketitle
+\def\biblio{} % resets the biblio command, if not here a new reference list will be produced after every chapter
+
+\include{FrontPage}
+\restoregeometry % restores the margins after frontpage
+%\nocite{*} % uncomment if you want all sources to be printed in the reference list, including the ones which are not cited in the text 
+
+\pagenumbering{gobble} % suppress page numbering
+\thispagestyle{plain} % suppress header
+
+%\maketitle
 
 \newpage
 
 \tableofcontents
 
 \newpage
-
+\pagenumbering{arabic}
 \section{Introduction}
 
 \subsection{What is a Quantum Computer?}
@@ -121,26 +214,19 @@ U(t) = e^{-\frac{i}{\hbar}\int_{T_0}^{T_1}H(t)dt}
 \end{equation}
 
 And because we chose $T_0$ and $T_1$ as the end points of a step of the functions, the total Hamiltonian of the system is constant so the integral is just a simple multiplication by $T_1-T_0$ which we'll write as $\delta t$. So the solution is
-
 \begin{equation}
 U(t) = e^{-\frac{i\cdot \delta t}{\hbar}H(t)}
 \end{equation}
-
-More then that, to solution over all time is the product of all the solutions for each constant piece. So
-
+More then that, to solution over all time is the product of all the solutions for each constant piece. So 
 \begin{equation}
 U(\epsilon(t)) = \prod_{k = 1}^NU_k
 \end{equation}
-
 Where N is the number of time steps in the simulation(larger N is a more precise simulation). \par
 This way the state of the qubit after the drive is given by:
-
 \begin{equation}
 \ket{\Psi_{final}} = U\ket{\Psi_{initial}}
 \end{equation}
-
 This way if we want to calculate the fidelity after applying the drives we can simply calculate the fidelity between the wanted state and the final state,
-
 \begin{equation}
 F(\Vec{\epsilon(t)}) = F(\Psi_{target}, \Psi_{final}) = \abs{\bra{\Psi_{target}}U\ket{\Psi_{initial}}}^2
 \end{equation}
@@ -173,7 +259,6 @@ We can use a bit different method to calculate the gradient to save on the compu
 
 \newpage
 \section{Controlling the FPGA(wave generator)}
-
 \newpage
 \section{Conclusion}
 
@@ -185,7 +270,9 @@ We can use a bit different method to calculate the gradient to save on the compu
 Our goal is to mathematically model the Hamiltonian of a system of a two-level atom interacting with a single quantized mode of an optical cavity's electromagnetic field. %Add details about the original paper by Edwin Jaynes and Fred Cummings
 \par
 First we'll divide the system into 3 parts, The atom(it can be other two-level quantum systems), the cavity(electromagnetic field with quantized modes) and the interaction between the atom and the cavity(an atom can emit a photon to the cavity and change it's electromagnetic field, or catch a photon from the cavity and go up an energy level).\par  % http://aliramadhan.me/files/jaynes-cummings-model.pdf
-Let's start with the cavity(we'll consider a one dimensional cavity for now). Maxwell's equations in free space are:
+Let's start with the cavity(we'll consider a one dimensional cavity for now). 
+\subsection{The Homogeneous Electromagnetic Wave Equations}
+Maxwell's equations in free space are:
 
 \begin{equation}
     \label{eq:Maxwell-1}
@@ -194,7 +281,7 @@ Let's start with the cavity(we'll consider a one dimensional cavity for now). Ma
 \begin{equation}
     \label{eq:Maxwell-2}
     \grad \cdot \textbf{B} = 0
-\end{equation}
+\end{equation}    
 \begin{equation}
     \label{eq:Maxwell-3}
     \grad \cross \textbf{E} = \frac{\partial\textbf{B}}{\partial t}
@@ -207,37 +294,37 @@ Let's start with the cavity(we'll consider a one dimensional cavity for now). Ma
 Taking the curl of \ref{eq:Maxwell-3} and \ref{eq:Maxwell-4} we get
 \begin{equation}
     \label{eq:curl-E}
-    \curl{(\curl{E})} = \curl{(-\frac{\partial B}{\partial t})} = -\frac{\partial}{\partial t}(\curl{B}) = - \mu_0 \epsilon_0 \frac{\partial^2 E}{\partial t^2}
+    \curl{(\curl{\textbf{E}})} = \curl{(-\frac{\partial \textbf{B}}{\partial t})} = -\frac{\partial}{\partial t}(\curl{\textbf{B}}) = - \mu_0 \epsilon_0 \frac{\partial^2 E}{\partial t^2}
 \end{equation}
 \begin{equation}
     \label{eq:curl-B}
-    \curl{(\curl{B})} = \curl{(\mu_0 \epsilon_0 \frac{\partial E}{\partial t})} = \mu_0 \epsilon_0\frac{\partial}{\partial t}(\curl{E}) = - \mu_0 \epsilon_0 \frac{\partial^2 B}{\partial t^2}
+    \curl{(\curl{\textbf{B}})} = \curl{(\mu_0 \epsilon_0 \frac{\partial E}{\partial t})} = \mu_0 \epsilon_0\frac{\partial}{\partial t}(\curl{E}) = - \mu_0 \epsilon_0 \frac{\partial^2 \textbf{B}}{\partial t^2}
 \end{equation}
-
+   
 We can use the vector identity
 \begin{equation}
     \nabla \times \left( \nabla \times \mathbf{V} \right) = \nabla \left( \nabla \cdot \mathbf{V} \right) - \nabla^2 \mathbf{V}
 \end{equation}
 And obtain from \ref{eq:curl-E} and \ref{eq:curl-B}
 \begin{equation}
-    \nabla(\nabla \cdot E) - \nabla^2 E = -\mu_0\epsilon_0\frac{\partial^2 E}{\partial t^2}
+    \nabla(\nabla \cdot \textbf{E}) - \nabla^2 \textbf{E} = -\mu_0\epsilon_0\frac{\partial^2 \textbf{E}}{\partial t^2}
 \end{equation}
 \begin{equation}
-    \nabla(\nabla \cdot B) - \nabla^2 B = -\mu_0\epsilon_0\frac{\partial^2 B}{\partial t^2}
+    \nabla(\nabla \cdot \textbf{B}) - \nabla^2 \textbf{B} = -\mu_0\epsilon_0\frac{\partial^2 \textbf{B}}{\partial t^2}
 \end{equation}
 Now, we can use \ref{eq:Maxwell-1} and \ref{eq:Maxwell-2} To cancel the left most term and get
 \begin{equation}
-    \nabla^2 E = \mu_0\epsilon_0\frac{\partial^2 E}{\partial t^2}
+    \nabla^2 \textbf{E} = \mu_0\epsilon_0\frac{\partial^2 \textbf{E}}{\partial t^2}
 \end{equation}
 \begin{equation}
-    \nabla^2 B = \mu_0\epsilon_0\frac{\partial^2 B}{\partial t^2}
+    \nabla^2 \textbf{B} = \mu_0\epsilon_0\frac{\partial^2 \textbf{B}}{\partial t^2}
 \end{equation}
 Now because we know that $v_{ph} = \frac{1}{\sqrt{\mu_0\epsilon_0}}$ and that the phase velocity of electromagnetic waves in a vacuum is the speed of light, $c_0$, we get
 
 \begin{equation} \label{eq:Homo_electro_wave}
     \begin{split}
-        \nabla^2 E = \frac{1}{c_0^2}\frac{\partial^2 E}{\partial t^2} \\
-        \nabla^2 B = \frac{1}{c_0^2}\frac{\partial^2 B}{\partial t^2}
+        \nabla^2 \textbf{E} = \frac{1}{c_0^2}\frac{\partial^2 \textbf{E}}{\partial t^2} \\
+        \nabla^2 \textbf{B} = \frac{1}{c_0^2}\frac{\partial^2 \textbf{B}}{\partial t^2}
     \end{split}
 \end{equation}
 % Check these equations with serge
@@ -246,9 +333,10 @@ We'll pick a polarization arbitrarily to be in the x direction(that way we get o
 \begin{equation} \label{eq:Homo_electro_wave_pol}
     \begin{split}
         \frac{\partial^2 E_x}{\partial x^2} = \frac{1}{c_0^2}\frac{\partial^2 E_x}{\partial t^2} \\
-        \frac{\partial^2 B_y}{\partial y^2} = \frac{1}{c_0^2}\frac{\partial^2 B_y}{\partial t^2}
+        \frac{\partial^2 B_y}{\partial y^2} = \frac{1}{c_0^2}\frac{\partial^2 B_y}{\partial t^2} 
     \end{split}
 \end{equation}
+\subsection{The Hamiltonians}
 We can easily solve \ref{eq:Homo_electro_wave_pol} using separation of variables,
 $$E_x(z, t)= Z(z)T(t)$$
 Yielding the solution,
@@ -281,12 +369,10 @@ Now, going from dynamical variables to operators(considering $\dot{q} \equiv p$)
 \end{equation}
 
 Let’s introduce creation and annihilation operators,
-
 $$\hat{a}(t) = \frac{1}{\sqrt{2\hbar\omega_c}}[\omega_c\hat{q}(t) + i\hat{p}(t)]$$
 $$\hat{a}^\dag(t) = \frac{1}{\sqrt{2\hbar\omega_c}}[\omega_c\hat{q}(t) - i\hat{p}(t)]$$
 
 We can write the electric and magnetic field as,
-
 \begin{equation}
     \begin{split}
          \hat{E}_x(z, t) = E_0[\hat{a}(t) + \hat{a}^\dag(t)]\sin{kz} \\
@@ -305,14 +391,22 @@ Remember that the qubit is a 2-level system, meaning we can define it has a supe
     \hat{H}_{atom} = E_g\ket{g}\bra{g} + E_e\ket{e}\bra{e}
 \end{equation}
 Using the vector representation of these states we'll write,
-\begin{equation}
-    \begin{split}
-        \hat{H}_{atom} =
+%\begin{equation}
+    \begin{align*} 
+        \hat{H}_{atom} &= 
+        E_e \begin{bmatrix}
+        1 & 0     \\
+        0   & 0   \\
+        \end{bmatrix}
+        + E_g \begin{bmatrix}
+        0 & 0     \\
+        0   & 1   \\
+        \end{bmatrix} = 
         \begin{bmatrix}
         E_e & 0     \\
         0   & E_g   \\
         \end{bmatrix} \\
-        = \frac{1}{2}\begin{bmatrix}
+        &= \frac{1}{2}\begin{bmatrix}
         E_g + E_e & 0          \\
         0         & E_g + E_e  \\
         \end{bmatrix} +
@@ -320,7 +414,7 @@ Using the vector representation of these states we'll write,
         E_e - E_g & 0          \\
         0         & -(E_e - E_g)  \\
         \end{bmatrix} \\
-        = \frac{1}{2}(E_g + E_e)\begin{bmatrix}
+        &= \frac{1}{2}(E_g + E_e)\begin{bmatrix}
         1 & 0          \\
         0         & 1  \\
         \end{bmatrix} +
@@ -328,11 +422,15 @@ Using the vector representation of these states we'll write,
         1 & 0          \\
         0         & -1  \\
         \end{bmatrix} \\
-        = \frac{1}{2}(E_g + E_e)\mathbb{I} + \frac{1}{2}(E_e - E_g)\hat{\sigma}_z
-    \end{split}
-\end{equation}
+        &= \frac{1}{2}(E_g + E_e)\mathbb{I} + \frac{1}{2}(E_e - E_g)\hat{\sigma}_z
+    \end{align*}
+%\end{equation}
 Again, we can define the zero point energy so that the first term becomes $0$. We know the difference between the excited state energy and the ground state energy because it's approximately an harmonic osscilator so $E_e - E_g = \hbar\omega_a$ where $\omega_a$ is the atom frequancy. Now we can write,
 \begin{equation}
     \hat{H}_{atom} = \frac{1}{2}\hbar\omega_a\hat{\sigma}_z
 \end{equation}
+
+\subsection{The Dispersive Limit}
+
+
 \end{document}

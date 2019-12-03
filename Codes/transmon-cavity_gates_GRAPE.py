@@ -1,5 +1,5 @@
 # Imports
-import qutip as qt
+import qutip as qt 
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -28,11 +28,11 @@ c = qt.tensor(qt.qeye(2), qt.destroy(cavity_levels))
 cd = c.dag()
 
 # Simulation time and accuracy details
-num_time_steps = 20  # Number of time states for the simulation
+num_time_steps = 10  # Number of time states for the simulation
 total_time = 20  # Total simulation time
 dt = total_time/num_time_steps  # Time step size
 times = np.linspace(0.0, total_time, num_time_steps)  # Time space array
-num_grape_iter = 100
+num_grape_iter = 10
 # Frequencies
 w_a = 1  # Atom(qubit) frequency
 w_c = 1  # Cavity frequency
