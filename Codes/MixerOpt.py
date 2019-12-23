@@ -4,6 +4,7 @@ from qm.qua import *
 import numpy as np
 import qcodes.instrument_drivers.signal_hound.USB_SA124B
 from scipy.optimize import fmin, brute
+from sys import exit
 
 
 def optimize():
@@ -13,7 +14,7 @@ def optimize():
     """
 
     # Connects to the quantum machine through the network
-    qmManager = QuantumMachinesManager(host='132.77.48.245')
+    qmManager = QuantumMachinesManager(host='132.77.48.243')
 
     # Initial guess for the best offsets
     offsets = [-0.08712208, 0.02583852]
@@ -26,14 +27,14 @@ def optimize():
 
     # Searching parameters, range of parameters for brute force, num of step in the brute force and max iteration fmin
     # OFFSETS
-    nstepbruteoffset = 20  # Num of steps in the initial brute force stage(N^2)
+    nstepbruteoffset = 5  # Num of steps in the initial brute force stage(N^2)
     rangebruteoffset = [(-0.1, 0.1), (-0.1, 0.1)]  # Range to look in the inital brute force stage
-    maxiterfminoffset = 100  # maximum number of iteration in the fmin stage
+    maxiterfminoffset = 10  # maximum number of iteration in the fmin stage
 
     # CORRECTION VARIABLES
-    nstepbrutecorvars = 20  # Num of steps in the initial brute force stage(N^2)
+    nstepbrutecorvars = 5  # Num of steps in the initial brute force stage(N^2)
     rangebrutecorvars = [(-0.3, 0.3), (0.6, 1.3)]  # Range to look in the inital brute force stage
-    maxiterfmincorvars = 100  # maximum number of iteration in the fmin stage
+    maxiterfmincorvars = 10  # maximum number of iteration in the fmin stage
 
     # Try to initialize the spectrum analyzer
     try:
@@ -151,8 +152,8 @@ def setconf(DC_I, DC_Q, correction):
     :return: The config for the quantum machine
     """
     # Sets ports
-    port_I = 7
-    port_Q = 8
+    port_I = 3
+    port_Q = 4
 
     LO_freq = 0
     f0 = LO_freq + 25e6
@@ -199,11 +200,11 @@ def setconf(DC_I, DC_Q, correction):
         'waveforms': {
             'wf1': {
                 'type': 'constant',
-                'sample': 0.1
+                'sample': 0.2
             },
             'wf2': {
                 'type': 'constant',
-                'sample': 0.1
+                'sample': 0.2
             }
 
         },
