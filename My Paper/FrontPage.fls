@@ -1,9 +1,0 @@
-PWD /home/dnl/Desktop/Projects/Controlling-a-Superconducting-Quantum-Computer/My Paper
-INPUT /etc/texmf/web2c/texmf.cnf
-INPUT /usr/share/texmf/web2c/texmf.cnf
-INPUT /usr/share/texlive/texmf-dist/web2c/texmf.cnf
-INPUT /var/lib/texmf/web2c/pdftex/latex.fmt
-INPUT FrontPage.tex
-OUTPUT FrontPage.log
-INPUT /usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map
-INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
