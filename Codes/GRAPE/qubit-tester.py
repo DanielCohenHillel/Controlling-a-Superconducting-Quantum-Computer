@@ -17,35 +17,29 @@ def gaussian(size, sigma, amp, graph=False):
     return gaussian_window
 
 
-w = 5*2*np.pi*0
-alpha = 0.2*np.pi*2
-qubit_levels = 4
-cavity_levels = 8
+w = 2*np.pi
+alpha = 2*np.pi*0.05
+qubit_levels = 10
 
 # Basic operators
-q = np.array(destroy(qubit_levels))
-qd = q.conj().T
+q = destroy(qubit_levels)
+qd = q.dag()
 
-c = np.array(destroy(cavity_levels))
-cd = c.conj().T
+q2 = q * q
+qd2 = qd * qd
 
-q2 = q@q
-qd2 = qd@qd
-
-H0 = qd@q - (alpha/2)*qd2@q2
-Hq_I = q+qd
-Hq_Q = 1j*(q-qd)
+H0 = w*qd*q - (alpha/2)*qd2*q2
+Hq_I = q + qd
+Hq_Q = 1j*(q - qd)
 
 # Time variables
-T = 10  # Total time of simulation
-Ns = 5000 # Number of time steps
+T = 1.5/alpha  # Total time of simulation
+Ns = 1000  # Number of time steps
 dt = T/Ns
 times = np.linspace(0.0, T, Ns)
 
-psi_initial = np.zeros(qubit_levels)
-psi_target = np.zeros(qubit_levels)
-psi_initial[0] = 1 
-psi_target[1] = 1
+psi_initial = qt.basis(qubit_levels, 0)
+psi_target = qt.basis(qubit_levels, 1)
 
 epsilon_max = 50
 sigma = 3
@@ -72,10 +66,10 @@ QI = conv_I
 QQ = conv_Q
 
 guess_freq = 1
-guess_width = 10
-guess_amp = 1e-2
-QI = guess_amp*np.exp((-times**2)/guess_width**2)*np.sin(times)
-QQ = guess_amp*np.exp((-times**2)/guess_width**2)*np.cos(times)
+guess_width = T/2
+guess_amp = (np.pi/(2*T))*2
+QI = guess_amp*np.exp((-times**2)/guess_width**2)*np.sin(w*times) + (np.random.random(Ns) - 0.5)*0.4
+QQ = guess_amp*np.exp((-times**2)/guess_width**2)*np.cos(w*times) + (np.random.random(Ns) - 0.5)*0.4
 
 pulse = np.array([QI, QQ])
 pulse = pulse.flatten()
@@ -83,7 +77,7 @@ pulse = pulse.flatten()
 itime = time.time()
 # Create the GrapePulse object :)
 test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], pulse, print_fidelity=True,
-                              epsilon_max=epsilon_max, lambda_band_lin=0.002, lambda_amp_lin=0.0)
+                              max_amp=epsilon_max, lambda_band_lin=0.02, lambda_amp_lin=0.0)
 # optimize with grape
 pulse, fidelity = test_pulse.optimize()
 print("Total time: ", time.time() - itime)
