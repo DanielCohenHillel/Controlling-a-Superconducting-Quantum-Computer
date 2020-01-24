@@ -322,7 +322,7 @@ class GrapePulse:
                 psi_final = prod @ self.psi_initial
                 # for i in range(10):
                 #     print(int((len(wig)/10)*i))
-                qt.plot_wigner(qt.Qobj(prod @ self.psi_initial, [[2, 5], [1, 1]]).ptrace(1))
+                qt.plot_wigner(qt.Qobj(prod @ self.psi_initial, [[2, 20], [1, 1]]).ptrace(1))
                 return psi_final
             else:
                 for k in range(self.num_time_steps):

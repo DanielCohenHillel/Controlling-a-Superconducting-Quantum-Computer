@@ -4,17 +4,14 @@ import matplotlib.pyplot as plt
 import grape  # This is mine :)
 import time
 import scipy.ndimage as ndi
+import scipy.signal
 
 
-def gaussian(size, sigma, amp, graph=False):
-    gaussian_window = np.zeros(size)
-    for x in range(size):
-        gaussian_window[x] = amp * np.exp(-(x - size / 2 ** 2) / sigma ** 2)
-        if graph:
-            plt.figure()
-            plt.plot(times[0:size], gaussian_window)
-    return gaussian_window
-
+def smooth(y, box_pts):
+    box = np.ones(int(box_pts))/int(box_pts)
+    y_smooth = np.convolve(y, box, mode='same')
+    return y_smooth
+            
 
 w_a = 5.66
 w_c = 4.5
@@ -26,7 +23,7 @@ K = w_c*10**(-3)
 chitag = chi*10**(-2)
 
 qubit_levels = 2
-cavity_levels = 5
+cavity_levels = 10
 
 # Basic operators
 a = tensor(destroy(qubit_levels), qeye(cavity_levels))
@@ -54,7 +51,7 @@ dt = T/Ns
 times = np.linspace(0.0, T, Ns)
 
 psi_initial = tensor(basis(qubit_levels, 0), basis(cavity_levels, 0))
-psi_target = tensor(basis(qubit_levels, 0), basis(cavity_levels, 4))
+psi_target = tensor(basis(qubit_levels, 0), basis(cavity_levels, 6))
 
 epsilon_max = 50
 
@@ -78,7 +75,10 @@ pulse, fidelity = test_pulse.optimize()
 print(np.abs(fidelity))
 while np.abs(fidelity) < 0.995:
     print("Bad Fidelity, Retrying")
-    test_pulse.initial_pulse = pulse.flatten() + (np.random.random(len(pulse.flatten())) - 0.5)*(2*np.max(pulse)*0.8)
+    r = np.random.random(Ns*len(drive_hamiltonians))
+    # r = scipy.signal.savgol_filter(r - 0.5, int((Ns/20) + 1-(Ns/20)%2), 3) 
+    r = smooth(r-0.5, Ns/10)
+    test_pulse.initial_pulse = pulse.flatten() + 4*r*(2*np.max(pulse)*0.8)
     pulse, fidelity = test_pulse.optimize()
 print("Total time: ", time.time() - itime)
 
