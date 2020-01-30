@@ -19,7 +19,7 @@ def gaussian(size, sigma, amp, graph=False):
 
 w = 2*np.pi
 alpha = 2*np.pi*0.05
-qubit_levels = 10
+qubit_levels = 2
 
 # Basic operators
 q = destroy(qubit_levels)
@@ -33,8 +33,8 @@ Hq_I = q + qd
 Hq_Q = 1j*(q - qd)
 
 # Time variables
-T = 1.5/alpha  # Total time of simulation
-Ns = 1000  # Number of time steps
+T = 5  # Total time of simulation
+Ns = 600  # Number of time steps
 dt = T/Ns
 times = np.linspace(0.0, T, Ns)
 
@@ -42,73 +42,75 @@ psi_initial = qt.basis(qubit_levels, 0)
 psi_target = qt.basis(qubit_levels, 1)
 
 epsilon_max = 50
-sigma = 3
+sigma = 30
 
 # Create initial guess for the pulses
 QI = np.sin(times)*(np.pi/(2*T)) + (np.random.random(Ns)-0.5)*0.1*np.exp(-((times -T/2)/sigma)**2)*0
 QQ = np.cos(times)*(np.pi/(2*T)) + (np.random.random(Ns)-0.5)*0.1*np.exp(-((times -T/2)/sigma)**2)*0
 
-QI = np.sin(times)*(np.pi/(2*T))
-QQ = np.cos(times)*(np.pi/(2*T))
+QI = np.sin(w*times)*(np.pi/(2*T))*1
+QQ = np.cos(w*times)*(np.pi/(2*T))*1
 
 # Creating a gaussian window for initial control amps guess
 gaussian_window = gaussian(int(Ns/10), Ns/50, 1)
 
 # Initial guess is a convolution of random number and gaussian window between
 # The amplitude of the random vector in the convolution(from -rand_amp to rand_amp)
-rand_amp_Q = 1/1000
-rand_amp_I = 1/1000
+rand_amp_Q = 1/1
+rand_amp_I = 1/1
 # Calculating the convolutions themselves
 conv_I = (ndi.convolve((np.random.random(Ns) - 0.5) * 2 * rand_amp_I, gaussian_window, mode='wrap'))
 conv_Q = (ndi.convolve((np.random.random(Ns) - 0.5) * 2 * rand_amp_Q, gaussian_window, mode='wrap'))
 
-QI = conv_I
-QQ = conv_Q
+# QI = conv_I
+# QQ = conv_Q
 
 guess_freq = 1
 guess_width = T/2
 guess_amp = (np.pi/(2*T))*2
-QI = guess_amp*np.exp((-times**2)/guess_width**2)*np.sin(w*times) + (np.random.random(Ns) - 0.5)*0.4
-QQ = guess_amp*np.exp((-times**2)/guess_width**2)*np.cos(w*times) + (np.random.random(Ns) - 0.5)*0.4
+# QI = guess_amp*np.exp((-times**2)/guess_width**2)*np.sin(w*times) + (np.random.random(Ns) - 0.5)*0.4
+# QQ = guess_amp*np.exp((-times**2)/guess_width**2)*np.cos(w*times) + (np.random.random(Ns) - 0.5)*0.4
 
 pulse = np.array([QI, QQ])
 pulse = pulse.flatten()
 
 itime = time.time()
 # Create the GrapePulse object :)
-test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], pulse, print_fidelity=True,
-                              max_amp=epsilon_max, lambda_band_lin=0.02, lambda_amp_lin=0.0)
+test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], pulse, constraints=False,print_fidelity=True,
+                              max_amp=epsilon_max, lambda_band_lin=0.0, lambda_amp_lin=0.0)
+test_pulse.cost(pulse)
+test_pulse.cost_gradient(pulse, debug_fidelity=True)
 # optimize with grape
 pulse, fidelity = test_pulse.optimize()
 print("Total time: ", time.time() - itime)
 
-# Some graphs
-# Creating plots for the amplitudes
-fig, axes = plt.subplots(2, 2)
-# print(axes)
-axes[0, 0].set_title("Initial pulse")
-axes[0, 0].step(times, QI)
-axes[0, 0].step(times, QQ)
-
-FQI = np.fft.ifft(QI)
-FQQ = np.fft.ifft(QQ)
-
-fft_freq = np.fft.fftfreq(Ns, dt)
-# Plotting the final control pulses in frequency space
-axes[1, 0].set_title("final pulse frequency space")
-axes[1, 0].step(fft_freq, FQI)
-axes[1, 0].step(fft_freq, FQQ)
-
-# Plotting the final control pulses
-axes[0, 1].set_title("final pulse")
-axes[0, 1].step(times,  pulse[0])
-axes[0, 1].step(times,  pulse[1])
-
-FQI = np.fft.ifft(pulse[0])
-FQQ = np.fft.ifft(pulse[1])
-# Plotting the final control pulses in frequency space
-axes[1, 1].set_title("final pulse frequency space")
-axes[1, 1].step(fft_freq, FQI)
-axes[1, 1].step(fft_freq, FQQ)
-
+# # Some graphs
+# # Creating plots for the amplitudes
+# fig, axes = plt.subplots(2, 2)
+# # print(axes)
+# axes[0, 0].set_title("Initial pulse")
+# axes[0, 0].step(times, QI)
+# axes[0, 0].step(times, QQ)
+#
+# FQI = np.fft.ifft(QI)
+# FQQ = np.fft.ifft(QQ)
+#
+# fft_freq = np.fft.fftfreq(Ns, dt)
+# # Plotting the final control pulses in frequency space
+# axes[1, 0].set_title("final pulse frequency space")
+# axes[1, 0].step(fft_freq, FQI)
+# axes[1, 0].step(fft_freq, FQQ)
+#
+# # Plotting the final control pulses
+# axes[0, 1].set_title("final pulse")
+# axes[0, 1].step(times,  pulse[0])
+# axes[0, 1].step(times,  pulse[1])
+#
+# FQI = np.fft.ifft(pulse[0])
+# FQQ = np.fft.ifft(pulse[1])
+# # Plotting the final control pulses in frequency space
+# axes[1, 1].set_title("final pulse frequency space")
+# axes[1, 1].step(fft_freq, FQI)
+# axes[1, 1].step(fft_freq, FQQ)
+#
 plt.show()

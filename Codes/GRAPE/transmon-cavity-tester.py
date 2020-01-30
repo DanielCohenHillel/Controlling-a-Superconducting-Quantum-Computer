@@ -12,18 +12,37 @@ def smooth(y, box_pts):
     y_smooth = np.convolve(y, box, mode='same')
     return y_smooth
             
+# Time variables
+T = 10  # Total time of simulation
+Ns = 5000  # Number of time steps
+dt = T/Ns
+times = np.linspace(0.0, T, Ns)
 
+# Values from Phillip's thesis
 w_a = 5.66
 w_c = 4.5
 chi = 2
+
+qubit_levels = 2
+cavity_levels = 7
+
+psi_initial = tensor(basis(qubit_levels, 0), basis(cavity_levels, 0))
+psi_target = tensor(basis(qubit_levels, 0), basis(cavity_levels, 4))
 
 # Anharmonic
 alpha = w_a*0.05
 K = w_c*10**(-3)
 chitag = chi*10**(-2)
 
-qubit_levels = 2
-cavity_levels = 10
+guess_freq = 1
+guess_width = 2
+guess_amp = (np.pi/(2*T))*2
+QI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.sin(w_a*times)*(1 + 0.2*np.random.random(Ns))
+QQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.cos(w_a*times)*(1 + 0.2*np.random.random(Ns))
+
+CI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.sin(w_c*times)*(1 + 0.2*np.random.random(Ns))
+CQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.cos(w_c*times)*(1 + 0.2*np.random.random(Ns))
+
 
 # Basic operators
 a = tensor(destroy(qubit_levels), qeye(cavity_levels))
@@ -44,25 +63,8 @@ Hc_I = c + cd
 Hc_Q = 1j*(c - cd)
 
 drive_hamiltonians = [Ha_I, Ha_Q, Hc_I, Hc_Q]
-# Time variables
-T = 5  # Total time of simulation
-Ns = 5000  # Number of time steps
-dt = T/Ns
-times = np.linspace(0.0, T, Ns)
-
-psi_initial = tensor(basis(qubit_levels, 0), basis(cavity_levels, 0))
-psi_target = tensor(basis(qubit_levels, 0), basis(cavity_levels, 6))
 
 epsilon_max = 50
-
-guess_freq = 1
-guess_width = 2
-guess_amp = (np.pi/(2*T))*2
-QI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.sin(w_a*times)
-QQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.cos(w_a*times)
-
-CI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.sin(w_c*times)
-CQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.cos(w_c*times)
 
 pulse = np.array([QI, QQ, CI, CQ])
 pulse = pulse.flatten()
@@ -73,12 +75,12 @@ test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, drive_hamilton
 # optimize with grape
 pulse, fidelity = test_pulse.optimize()
 print(np.abs(fidelity))
-while np.abs(fidelity) < 0.995:
+while np.abs(fidelity) < 0.99:
     print("Bad Fidelity, Retrying")
     r = np.random.random(Ns*len(drive_hamiltonians))
     # r = scipy.signal.savgol_filter(r - 0.5, int((Ns/20) + 1-(Ns/20)%2), 3) 
-    r = smooth(r-0.5, Ns/10)
-    test_pulse.initial_pulse = pulse.flatten() + 4*r*(2*np.max(pulse)*0.8)
+    r = r-0.5# smooth(r-0.5, Ns/10)
+    test_pulse.initial_pulse = pulse.flatten() + r*(2*np.max(pulse)*0.8)
     pulse, fidelity = test_pulse.optimize()
 print("Total time: ", time.time() - itime)
 
