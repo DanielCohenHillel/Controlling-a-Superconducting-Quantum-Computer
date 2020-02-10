@@ -16,18 +16,24 @@ def optimize():
     qmManager = QuantumMachinesManager(host='132.77.48.245')
 
     # Initial guess for the best offsets
-    offsets = [-0.08712208, 0.02583852] DC_I = offsets[0] DC_Q = offsets[1] # Initial guess for correction variables corvars = [0, 1]
-    correction = calc_cmat(corvars[0], corvars[1])
+    # Initial guess for correction variables corvars = [0, 1]
+    offsets = [-0.08712208, 0.02583852]
+    DC_I = offsets[0]
+    DC_Q = offsets[1]
+    # correction = calc_cmat(corvars[0], corvars[1])
 
     # Searching parameters, range of parameters for brute force, num of step in the brute force and max iteration fmin
     # OFFSETS
     nstepbruteoffset = 20  # Num of steps in the initial brute force stage(N^2)
-    rangebruteoffset = [(-0.1, 0.1), (-0.1, 0.1)]  # Range to look in the inital brute force stage
+    # Range to look in the inital brute force stage
+    rangebruteoffset = [(-0.1, 0.1), (-0.1, 0.1)]
     maxiterfminoffset = 100  # maximum number of iteration in the fmin stage
 
     # CORRECTION VARIABLES
-    nstepbrutecorvars = 20  # Num of steps in the initial brute force stage(N^2)
-    rangebrutecorvars = [(-0.3, 0.3), (0.6, 1.3)]  # Range to look in the inital brute force stage
+    # Num of steps in the initial brute force stage(N^2)
+    nstepbrutecorvars = 20
+    # Range to look in the inital brute force stage
+    rangebrutecorvars = [(-0.3, 0.3), (0.6, 1.3)]
     maxiterfmincorvars = 100  # maximum number of iteration in the fmin stage
 
     # Try to initialize the spectrum analyzer
@@ -52,11 +58,14 @@ def optimize():
         qm1 = qmManager.open_qm(config)
         job = qm1.execute(prog, forceExecution=True)
 
-        offsets = brute(power, rangebruteoffset, args=(corvars, qm1, inst, 'offset'), Ns= nstepbruteoffset, finish=None)
+        offsets = brute(power, rangebruteoffset, args=(
+            corvars, qm1, inst, 'offset'), Ns=nstepbruteoffset, finish=None)
 
-        print('\n    Initial guess for the offsets [DC_I, DC_Q]: ', offsets, "\n\n")
+        print(
+            '\n    Initial guess for the offsets [DC_I, DC_Q]: ', offsets, "\n\n")
         # Using fmin function to find the best offsets to minimize the leakage
-        xopt = fmin(power, offsets, (corvars, qm1, inst, 'offset'), maxiter=maxiterfminoffset)
+        xopt = fmin(power, offsets, (corvars, qm1, inst,
+                                     'offset'), maxiter=maxiterfminoffset)
 
     # If there's an error trying to use the "power" function
     except Exception as e:
@@ -74,9 +83,11 @@ def optimize():
         corvars = brute(powerdiffargs, rangebrutecorvars, args=(offsets, qm1, inst), Ns=nstepbrutecorvars,
                         finish=None)
         correction = calc_cmat(corvars[0], corvars[1])
-        print("\n    Initial guess from brute force [th, k]: " + str(corvars) + "\n\n")
+        print(
+            "\n    Initial guess from brute force [th, k]: " + str(corvars) + "\n\n")
 
-        xopt = fmin(powerdiffargs, corvars, (offsets, qm1, inst), maxiter=maxiterfmincorvars)
+        xopt = fmin(powerdiffargs, corvars, (offsets, qm1, inst),
+                    maxiter=maxiterfmincorvars)
 
     except Exception as e:
         print("An error has occurred trying to find optimal correction matrix.\nThe Error:\n", e)
@@ -112,7 +123,7 @@ def power(offsets, corvars, qm, inst, searchfor):
     # Set correction matrix
     th = corvars[0]
     k = corvars[1]
-    correction = calc_cmat(th,k)
+    correction = calc_cmat(th, k)
     # correction = calc_cmat(sigmoid(th)*np.pi, sigmoid(k)*0.6 + 0.7)
 
     # The "heart" of the function, sends the quantum machine a command to change the offsets and corrections
@@ -126,8 +137,8 @@ def power(offsets, corvars, qm, inst, searchfor):
     p = inst.get('power')
 
     # Prints the result of each iteration
-    print("Offsets [DC_I, DC_Q]: " + str(offsets) 
-            + "  |  Correction variables [theta, k]: " 
+    print("Offsets [DC_I, DC_Q]: " + str(offsets)
+          + "  |  Correction variables [theta, k]: "
             + str(corvars) + " => " + str(p))
 
     return p  # Return the power of the leakage frequency
@@ -222,7 +233,8 @@ def setinstrument(freq, span):
     """
     # Sets instrument drivers and connections
     path = 'C:\\Program Files\\Signal Hound\\Spike\\sa_api.dll'  # device's driver location
-    mysa = qcodes.instrument_drivers.signal_hound.USB_SA124B.SignalHound_USB_SA124B('mysa', dll_path=path)
+    mysa = qcodes.instrument_drivers.signal_hound.USB_SA124B.SignalHound_USB_SA124B(
+        'mysa', dll_path=path)
 
     print("\n------------------------------------------------------")
     print(mysa.get_idn())  # Prints instrument's details

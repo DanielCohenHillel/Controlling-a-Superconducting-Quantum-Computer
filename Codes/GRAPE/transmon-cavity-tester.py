@@ -11,7 +11,8 @@ def smooth(y, box_pts):
     box = np.ones(int(box_pts))/int(box_pts)
     y_smooth = np.convolve(y, box, mode='same')
     return y_smooth
-            
+
+
 # Time variables
 T = 10  # Total time of simulation
 Ns = 5000  # Number of time steps
@@ -37,11 +38,15 @@ chitag = chi*10**(-2)
 guess_freq = 1
 guess_width = 2
 guess_amp = (np.pi/(2*T))*2
-QI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.sin(w_a*times)*(1 + 0.2*np.random.random(Ns))
-QQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.cos(w_a*times)*(1 + 0.2*np.random.random(Ns))
+QI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2) * \
+    np.sin(w_a*times)*(1 + 0.2*np.random.random(Ns))
+QQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2) * \
+    np.cos(w_a*times)*(1 + 0.2*np.random.random(Ns))
 
-CI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.sin(w_c*times)*(1 + 0.2*np.random.random(Ns))
-CQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2)*np.cos(w_c*times)*(1 + 0.2*np.random.random(Ns))
+CI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2) * \
+    np.sin(w_c*times)*(1 + 0.2*np.random.random(Ns))
+CQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2) * \
+    np.cos(w_c*times)*(1 + 0.2*np.random.random(Ns))
 
 
 # Basic operators
@@ -78,8 +83,8 @@ print(np.abs(fidelity))
 while np.abs(fidelity) < 0.99:
     print("Bad Fidelity, Retrying")
     r = np.random.random(Ns*len(drive_hamiltonians))
-    # r = scipy.signal.savgol_filter(r - 0.5, int((Ns/20) + 1-(Ns/20)%2), 3) 
-    r = r-0.5# smooth(r-0.5, Ns/10)
+    # r = scipy.signal.savgol_filter(r - 0.5, int((Ns/20) + 1-(Ns/20)%2), 3)
+    r = r-0.5  # smooth(r-0.5, Ns/10)
     test_pulse.initial_pulse = pulse.flatten() + r*(2*np.max(pulse)*0.8)
     pulse, fidelity = test_pulse.optimize()
 print("Total time: ", time.time() - itime)

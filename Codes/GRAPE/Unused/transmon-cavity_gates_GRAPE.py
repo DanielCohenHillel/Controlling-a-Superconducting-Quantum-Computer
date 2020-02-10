@@ -1,5 +1,5 @@
 # Imports
-import qutip as qt 
+import qutip as qt
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -61,7 +61,8 @@ def get_drive_fields_grape(operator, disp_graphs=False):
     start_time = time.time_ns()
 
     U_start = np.ones([4, num_time_steps])/7.0
-    result = qt.control.grape_unitary(operator, H0, H_d, num_grape_iter, times, u_start=U_start)
+    result = qt.control.grape_unitary(
+        operator, H0, H_d, num_grape_iter, times, u_start=U_start)
 
     # Atom(transmon)
     QI_a = result.u[-1, 0, :]
@@ -88,7 +89,8 @@ def get_drive_fields_grape(operator, disp_graphs=False):
         ax2.set_xlabel('Time (sec)')
         ax2.set_ylabel('Amplitude')
 
-    print("-    Evaluating the control pulses took", str((time.time_ns() - start_time)*1e-9)[0:4], "Seconds")
+    print("-    Evaluating the control pulses took",
+          str((time.time_ns() - start_time)*1e-9)[0:4], "Seconds")
     return QI_a, QQ_a, QI_c, QQ_c
 
 
@@ -114,7 +116,8 @@ def run_operator(state, QI_a, QQ_a, QI_c, QQ_c, show_fid_graph=False):
         ax.set_xlabel('Time (sec)')
         ax.set_ylabel('Fidelity')
 
-    print("-    Simulating the system took", str((time.time_ns() - start_time) * 1e-9)[0:4], "Seconds")
+    print("-    Simulating the system took",
+          str((time.time_ns() - start_time) * 1e-9)[0:4], "Seconds")
     return result
 
 
@@ -123,9 +126,11 @@ state_target = qt.tensor(qt.qeye(2), qt.create(cavity_levels, 1))
 
 QI_a, QQ_a, QI_c, QQ_c = get_drive_fields_grape(state_target, disp_graphs=True)
 
-state_final = run_operator(state_init, QI_a, QQ_a, QI_c, QQ_c, show_fid_graph=True)
+state_final = run_operator(state_init, QI_a, QQ_a,
+                           QI_c, QQ_c, show_fid_graph=True)
 
-print("-    Final fidelity:", str(qt.fidelity(state_target, state_final)*100)[0:9] + "%")
+print("-    Final fidelity:",
+      str(qt.fidelity(state_target, state_final)*100)[0:9] + "%")
 
 bl.add_states(qt.ptrace(state_init, 0))
 bl.add_states(qt.ptrace(state_final, 0))

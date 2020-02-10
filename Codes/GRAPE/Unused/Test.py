@@ -9,7 +9,7 @@ from matplotlib.pyplot import subplots
 import qutip.control.pulseoptim as cpo
 from qutip.qip import hadamard_transform
 import qutip.logging_utils as logging
-import  scipy.optimize as spopt
+import scipy.optimize as spopt
 from scipy.sparse.linalg import expm_multiply, expm
 
 
@@ -69,7 +69,7 @@ NN = 200
 result = qt.control.grape_unitary(U_targ, H_d, H_c, NN, times)
 
 for i in range(NN):
-    plt.plot(times, result.u[i,0,:])
+    plt.plot(times, result.u[i, 0, :])
 
 
 QI = result.u[-1, 0, :]

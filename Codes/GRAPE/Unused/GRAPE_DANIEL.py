@@ -53,16 +53,21 @@ def main():
     rand_amp_Q = .5
     rand_amp_I = .5
     # Calculating the convolutions themselves
-    conv_I = (ndi.convolve((np.random.random(Ns) - 0.5) * 2 * rand_amp_I, gaussian_window, mode='wrap'))
-    conv_Q = (ndi.convolve((np.random.random(Ns) - 0.5) * 2 * rand_amp_Q, gaussian_window, mode='wrap'))
+    conv_I = (ndi.convolve((np.random.random(Ns) - 0.5) *
+                           2 * rand_amp_I, gaussian_window, mode='wrap'))
+    conv_Q = (ndi.convolve((np.random.random(Ns) - 0.5) *
+                           2 * rand_amp_Q, gaussian_window, mode='wrap'))
 
     gauss_width = 0.1
-    gauss = np.exp(-gauss_width*((times-T/2)**2)) - np.exp(-gauss_width * ((T/2)**2))
+    gauss = np.exp(-gauss_width*((times-T/2)**2)) - \
+        np.exp(-gauss_width * ((T/2)**2))
     plt.figure()
-    plt.plot(times,gauss)
+    plt.plot(times, gauss)
     # Adding the convolutions to sin/cos waves
-    QI = (np.sin(times-np.pi/4)*(np.pi/(2*T)) + (np.random.random(Ns)-0.5)*0.03)*gauss
-    QQ = (np.cos(times+np.pi/4)*(np.pi/(2*T)) + (np.random.random(Ns)-0.5)*0.03)*gauss
+    QI = (np.sin(times-np.pi/4)*(np.pi/(2*T)) +
+          (np.random.random(Ns)-0.5)*0.03)*gauss
+    QQ = (np.cos(times+np.pi/4)*(np.pi/(2*T)) +
+          (np.random.random(Ns)-0.5)*0.03)*gauss
     print(run_operator(QI, QQ))
 
     # QI = (np.random.random(Ns)-0.5)
@@ -116,7 +121,8 @@ def main():
     axes[1, 1].step(fft_freq, FQQ)
 
     run_operator(QI, QQ, show_bloch=True)
-    print("\n\n---> Final fidelity: ", str(-1*get_fidelity(np.concatenate((QI, QQ)))*100) + "%")
+    print("\n\n---> Final fidelity: ",
+          str(-1*get_fidelity(np.concatenate((QI, QQ)))*100) + "%")
 
 
 def optimize_pulse_unitary_daniel(x0, constraints=True, fix_amp_max=True):
@@ -127,7 +133,8 @@ def optimize_pulse_unitary_daniel(x0, constraints=True, fix_amp_max=True):
             result = spopt.fmin_l_bfgs_b(get_fidelity_constraints,
                                          np.arctanh(x0/epsilon_max), get_fidelity_gradient_constraints, factr=1e12)
         else:
-            result = spopt.fmin_l_bfgs_b(get_fidelity_constraints, x0, get_fidelity_gradient_constraints)
+            result = spopt.fmin_l_bfgs_b(
+                get_fidelity_constraints, x0, get_fidelity_gradient_constraints)
     else:
         # Without Constraints
         result = spopt.fmin_l_bfgs_b(get_fidelity, x0, get_fidelity_gradient)
@@ -182,9 +189,11 @@ def get_fidelity_gradient(control_pulses, debug_fidelity=False):
 
     c_final = []
     for k in range(Ns):
-        c_final.append(2 * np.real(c * np.conjugate(1j * dt * (psi_bwd[k] * Hq_I * psi_fwd[k])[0][0])))
+        c_final.append(2 * np.real(c * np.conjugate(1j * dt *
+                                                    (psi_bwd[k] * Hq_I * psi_fwd[k])[0][0])))
     for k in range(Ns):
-        c_final.append(2 * np.real(c * np.conjugate(1j * dt * (psi_bwd[k] * Hq_Q * psi_fwd[k])[0][0])))
+        c_final.append(2 * np.real(c * np.conjugate(1j * dt *
+                                                    (psi_bwd[k] * Hq_Q * psi_fwd[k])[0][0])))
 
     if debug_fidelity:
         fig, axes = subplots(2, 2)
@@ -194,7 +203,8 @@ def get_fidelity_gradient(control_pulses, debug_fidelity=False):
         axes[0, 0].plot(times, np.zeros(Ns))
 
         axes[1, 0].set_title("rough estimation of gradient")
-        grad = -spopt.approx_fprime(np.concatenate((QI, QQ)), get_fidelity, 0.001)
+        grad = - \
+            spopt.approx_fprime(np.concatenate((QI, QQ)), get_fidelity, 0.001)
         axes[1, 0].plot(times, grad[0:Ns])
         axes[1, 0].plot(times, grad[Ns:])
         axes[1, 0].plot(times, np.zeros(Ns))
@@ -277,12 +287,15 @@ def get_fidelity_gradient_constraints(control_pulses, debug_fidelity=False):
 
     c_final = []
     for k in range(Ns):
-        c_final.append(2 * np.real(c * np.conjugate(1j * dt * (psi_bwd[k] * Hq_I * psi_fwd[k])[0][0])))
+        c_final.append(2 * np.real(c * np.conjugate(1j * dt *
+                                                    (psi_bwd[k] * Hq_I * psi_fwd[k])[0][0])))
     for k in range(Ns):
-        c_final.append(2 * np.real(c * np.conjugate(1j * dt * (psi_bwd[k] * Hq_Q * psi_fwd[k])[0][0])))
+        c_final.append(2 * np.real(c * np.conjugate(1j * dt *
+                                                    (psi_bwd[k] * Hq_Q * psi_fwd[k])[0][0])))
 
     xIxQ = np.concatenate((xI, xQ))
-    gradient = (np.asarray(np.transpose(c_final)) - constraint_gradient(xI, xQ))*(epsilon_max / (np.cosh(xIxQ)**2))
+    gradient = (np.asarray(np.transpose(c_final)) -
+                constraint_gradient(xI, xQ))*(epsilon_max / (np.cosh(xIxQ)**2))
     if debug_fidelity:
         fig, axes = subplots(2, 2)
         axes[0, 0].set_title("gradient")
@@ -291,7 +304,8 @@ def get_fidelity_gradient_constraints(control_pulses, debug_fidelity=False):
         axes[0, 0].plot(times, np.zeros(Ns))
 
         axes[1, 0].set_title("rough estimation of gradient")
-        grad = -spopt.approx_fprime(np.concatenate((xI, xQ)), get_fidelity_constraints, 0.00001)
+        grad = -spopt.approx_fprime(np.concatenate((xI, xQ)),
+                                    get_fidelity_constraints, 0.00001)
         axes[1, 0].plot(times, grad[0:Ns])
         axes[1, 0].plot(times, grad[Ns:])
         axes[1, 0].plot(times, np.zeros(Ns))
@@ -313,8 +327,10 @@ def constraint(QI, QQ):
     constraint_total = 0
     lambda_amp = 0
     for k in range(Ns-1):
-        constraint_total = constraint_total + lambda_band_lin*(QI[k+1] - QI[k])**2
-        constraint_total = constraint_total + lambda_band_lin*(QQ[k+1] - QQ[k])**2
+        constraint_total = constraint_total + \
+            lambda_band_lin*(QI[k+1] - QI[k])**2
+        constraint_total = constraint_total + \
+            lambda_band_lin*(QQ[k+1] - QQ[k])**2
     print("\n-)Constraint Total: ", constraint_total)
     return constraint_total
 
@@ -443,4 +459,3 @@ print("\n---------------------------------------------------------------------\n
 #     QQ = args['QQ']
 #     i = int(t / dt)
 #     return QQ[min(np.abs(i), Ns - 1)]
-

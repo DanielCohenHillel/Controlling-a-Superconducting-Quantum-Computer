@@ -45,8 +45,10 @@ epsilon_max = 50
 sigma = 30
 
 # Create initial guess for the pulses
-QI = np.sin(times)*(np.pi/(2*T)) + (np.random.random(Ns)-0.5)*0.1*np.exp(-((times -T/2)/sigma)**2)*0
-QQ = np.cos(times)*(np.pi/(2*T)) + (np.random.random(Ns)-0.5)*0.1*np.exp(-((times -T/2)/sigma)**2)*0
+QI = np.sin(times)*(np.pi/(2*T)) + (np.random.random(Ns)-0.5) * \
+    0.1*np.exp(-((times - T/2)/sigma)**2)*0
+QQ = np.cos(times)*(np.pi/(2*T)) + (np.random.random(Ns)-0.5) * \
+    0.1*np.exp(-((times - T/2)/sigma)**2)*0
 
 QI = np.sin(w*times)*(np.pi/(2*T))*1
 QQ = np.cos(w*times)*(np.pi/(2*T))*1
@@ -59,8 +61,10 @@ gaussian_window = gaussian(int(Ns/10), Ns/50, 1)
 rand_amp_Q = 1/1
 rand_amp_I = 1/1
 # Calculating the convolutions themselves
-conv_I = (ndi.convolve((np.random.random(Ns) - 0.5) * 2 * rand_amp_I, gaussian_window, mode='wrap'))
-conv_Q = (ndi.convolve((np.random.random(Ns) - 0.5) * 2 * rand_amp_Q, gaussian_window, mode='wrap'))
+conv_I = (ndi.convolve((np.random.random(Ns) - 0.5) *
+                       2 * rand_amp_I, gaussian_window, mode='wrap'))
+conv_Q = (ndi.convolve((np.random.random(Ns) - 0.5) *
+                       2 * rand_amp_Q, gaussian_window, mode='wrap'))
 
 # QI = conv_I
 # QQ = conv_Q
@@ -76,7 +80,7 @@ pulse = np.array([QI, QQ])
 
 itime = time.time()
 # Create the GrapePulse object :)
-test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], pulse, constraints=True,print_fidelity=True,
+test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], pulse, constraints=True, print_fidelity=True,
                               max_amp=epsilon_max, lambda_band_lin=0.2, lambda_amp_lin=0.04)
 # test_pulse.cost(pulse*2)
 # test_pulse.cost_gradient(pulse*2, debug_fidelity=True)

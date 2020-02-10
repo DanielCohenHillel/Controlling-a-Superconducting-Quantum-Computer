@@ -57,10 +57,10 @@ def main():
 
     # The function that does the GRAPE algorithm
     result = cpo.optimize_pulse(H_d, H_c, psi0, psitarg, Ns, T,
-                                        fid_err_targ=fid_err_targ, min_grad=min_grad,
-                                        max_iter=max_iter, max_wall_time=max_wall_time,
-                                        out_file_ext=f_ext, init_pulse_type=p_type,
-                                        log_level=log_level, gen_stats=True)
+                                fid_err_targ=fid_err_targ, min_grad=min_grad,
+                                max_iter=max_iter, max_wall_time=max_wall_time,
+                                out_file_ext=f_ext, init_pulse_type=p_type,
+                                log_level=log_level, gen_stats=True)
 
     # Plot
     fig1 = plt.figure()
@@ -70,10 +70,12 @@ def main():
     ax1.set_xlabel("Time")
     ax1.set_ylabel("Control amplitude")
     ax1.step(result.time,
-             np.hstack((result.initial_amps[:, 0], result.initial_amps[-1, 0])),
+             np.hstack((result.initial_amps[:, 0],
+                        result.initial_amps[-1, 0])),
              where='post')
     ax1.step(result.time,
-             np.hstack((result.initial_amps[:, 1], result.initial_amps[-1, 0])),
+             np.hstack((result.initial_amps[:, 1],
+                        result.initial_amps[-1, 0])),
              where='post')
 
     # Final
@@ -119,7 +121,8 @@ def fidelitytarg(H, psi0, psitarg, QI, QQ):
     # result = mesolve()
 
     # Prints initial fidelity
-    print("|<psi_0|psi_target>|² Initial fidelity: ", fidelity(psitarg, psitarg), "\n")
+    print("|<psi_0|psi_target>|² Initial fidelity: ",
+          fidelity(psitarg, psitarg), "\n")
 
     # Bloch spheare with the initial, target and evaluated qubit states
     bl = Bloch()
