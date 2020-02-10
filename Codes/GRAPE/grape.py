@@ -10,6 +10,7 @@ import scipy.linalg
 # warnings.filterwarnings('ignore')
 a = 0.000001
 
+
 class GrapePulse:
     """
     A class used to represent a pulse to be optimized by GRAPE
@@ -215,7 +216,7 @@ class GrapePulse:
         c_final = 2 * np.real(c * np.conjugate(1j * self.dt * c_final))
         print("Gradient time: ", str(time.time() - itime), "Seconds")
 
-        gradient = (-c_final + np.ndarray.flatten(self.constraint_gradient(in_pulse))) #  *np.ndarray.flatten(self.max_amp/(np.cosh(in_pulse) ** 2))
+        gradient = (c_final - np.ndarray.flatten(self.constraint_gradient(in_pulse))) #  *np.ndarray.flatten(self.max_amp/(np.cosh(in_pulse) ** 2))
 
         # gradient = -c_final
 
@@ -395,7 +396,7 @@ class GrapePulse:
                 psi_final = prod @ self.psi_initial
                 # for i in range(10):
                 #     print(int((len(wig)/10)*i))
-                qt.plot_wigner(qt.Qobj(prod @ self.psi_initial, [[2, 20], [1, 1]]).ptrace(1))
+                # qt.plot_wigner(qt.Qobj(prod @ self.psi_initial, [[2, 20], [1, 1]]).ptrace(1))
                 return psi_final
             else:
                 itime = time.time()
