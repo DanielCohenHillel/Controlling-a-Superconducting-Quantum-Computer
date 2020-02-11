@@ -8,7 +8,7 @@ import qutip as qt
 import warnings
 import scipy.linalg
 # warnings.filterwarnings('ignore')
-a = 0.000001
+a = 1
 
 
 class GrapePulse:
@@ -140,12 +140,12 @@ class GrapePulse:
             result = spopt.fmin_l_bfgs_b(self.cost,
                                          np.arctanh(
                                              self.initial_pulse / self.max_amp), self.cost_gradient,
-                                         factr=1e12)
+                                         factr=1e10)
         else:
             result = spopt.fmin_l_bfgs_b(self.cost, np.arctanh(self.initial_pulse / self.max_amp),
-                                         self.cost_gradient, factr=1e12)
-        result = (
-            self.max_amp * np.tanh(result[0].reshape(self.num_drives, self.num_time_steps)), result[1])
+                                         self.cost_gradient, factr=1e10)
+        result = (result[0].reshape(self.num_drives,
+                                    self.num_time_steps), result[1])
         self.run_operator(result[0], show_prob=True)
         return result[0:2]
 
@@ -158,7 +158,7 @@ class GrapePulse:
         in_pulse = in_pulse.reshape(self.num_drives, self.num_time_steps)
 
         if self.constraints:
-            pulse = self.max_amp * np.tanh(in_pulse)
+            # pulse = self.max_amp * np.tanh(in_pulse)
             pulse = in_pulse
         else:
             pulse = in_pulse
@@ -167,11 +167,12 @@ class GrapePulse:
         #     pulse[i, -1] = 0
         # Calculates the final state and the fidelity from the run_operator function
         itime = time.time()
+        # print("Before", np.max(pulse))
         psi_final, fid = self.run_operator(pulse)
-        print("Cost time: ", str(time.time() - itime), "seconds")
-
-        final_fid = -fid + self.constraints * self.constraint(in_pulse)
-
+        # print("Cost time: ", str(time.time() - itime), "seconds")
+        final_fid = -fid + self.constraints * self.constraint(pulse)
+        # print("After", np.max(pulse))
+        # plt.plot(self.times, pulse[0])
         return final_fid
 
     def cost_gradient(self, in_pulse, debug_fidelity=False):
@@ -226,11 +227,12 @@ class GrapePulse:
                                                              0] @ H_k @ psi_fwd[k]
             # c_final[i*self.num_time_steps : (i+1)*self.num_time_steps] = psi_bwd[:, 0] @ H_k @ psi_fwd[:]
         c_final = 2 * np.real(c * np.conjugate(1j * self.dt * c_final))
-        print("Gradient time: ", str(time.time() - itime), "Seconds")
+        # print("Gradient time: ", str(time.time() - itime), "Seconds")
 
         # *np.ndarray.flatten(self.max_amp/(np.cosh(in_pulse) ** 2))
-        gradient = (
-            c_final - np.ndarray.flatten(self.constraint_gradient(in_pulse)))
+        gradient = -c_final + \
+            np.ndarray.flatten(self.constraint_gradient(pulse))
+        # print("AVG GRAD: ", np.average(np.abs(c_final)))
 
         # gradient = -c_final
 
@@ -245,11 +247,14 @@ class GrapePulse:
             axes[0, 0].plot(self.times, np.zeros(self.num_time_steps))
 
             axes[1, 0].set_title("rough estimation of gradient")
-            grad = - \
-                spopt.approx_fprime(np.ndarray.flatten(
-                    in_pulse), self.cost, 0.0001)
+            grad = -spopt.approx_fprime(np.ndarray.flatten(
+                in_pulse), self.cost, 1e-10)
+            # grad2 = -spopt.approx_fprime(np.ndarray.flatten(
+            # in_pulse), self.cost, 1e-1)
             axes[1, 0].plot(self.times, grad[0:self.num_time_steps])
             axes[1, 0].plot(self.times, grad[self.num_time_steps:])
+            # axes[1, 0].plot(self.times, grad2[0:self.num_time_steps])
+            # axes[1, 0].plot(self.times, grad2[self.num_time_steps:])
             axes[1, 0].plot(self.times, np.zeros(self.num_time_steps))
 
             axes[0, 1].set_title("QI")
@@ -260,9 +265,9 @@ class GrapePulse:
             axes[1, 1].plot(self.times, in_pulse[0])
             axes[1, 1].plot(self.times, np.zeros(self.num_time_steps))
 
-        for i in range(self.num_drives):
-            gradient[0, i*self.num_time_steps] = 0
-            gradient[0, i*self.num_time_steps - 1] = 0
+        # for i in range(self.num_drives):
+        #     gradient[0, i*self.num_time_steps] = 0
+        #     gradient[0, i*self.num_time_steps - 1] = 0
 
         return gradient
 
@@ -274,8 +279,9 @@ class GrapePulse:
         """
         slope = pulse[:, 1:] - pulse[:, :-1]
         bandwidth_constraint = np.sum(slope**2)
-        amplitude_constraint = np.sum(pulse**2)
-
+        amplitude_constraint = np.average(pulse**2)
+        # print(np.max(pulse))
+        # print(amplitude_constraint)
         # DRAG constraints
         # Initialize the elements used to calculate the gradient efficiently
         psi_fwd = []
@@ -290,17 +296,22 @@ class GrapePulse:
                 psi_fwd.append(U_k[k - 1] @ psi_fwd[k - 1])
 
         g_drag = 0
-        # state_2 = np.array([[0, 0, 1]])
-        # for i in range(self.num_time_steps):
-        #     g_drag += np.abs(state_2 @ psi_fwd[i])**2
+        state_2 = np.array([0, 0, 1])
+        # print(psi_fwd[0].shape)
+        for i in range(self.num_time_steps):
+            g_drag += np.abs(state_2 @ psi_fwd[i])**2
 
         constraint_total = self.lambda_amp_lin * amplitude_constraint \
             + self.lambda_band_lin * bandwidth_constraint \
-            + 0 * g_drag*a
-        # print(constraint_total)
+            + g_drag*a
+        # print(amplitude_constraint)
+        # print(g_drag)
         self.drag_sum = g_drag
         # print("\n-)Constraint Total: ", constraint_total) if self.print_fidelity else None
-        return constraint_total
+        # print("AVG CONST", constraint_total)
+        # print(constraint_total)
+        # print("DRAG ", g_drag[0, 0]*a)
+        return constraint_total.flatten()
 
     def constraint_gradient(self, pulse):
         """
@@ -321,50 +332,60 @@ class GrapePulse:
 
         g_amp_lin = 2*pulse
 
-        # # Initialize the elements used to calculate the gradient efficiently
-        # psi_fwd = []
-        #
-        # # U_k = self.eigy_expm((1j * self.dt) * self.H(pulse))
-        # U_k = self.U_k
-        #
-        # for k in range(self.num_time_steps):
-        #     if k == 0:
-        #         psi_fwd.append(self.psi_initial)
-        #     else:
-        #         psi_fwd.append(U_k[k - 1] @ psi_fwd[k - 1])
-        # state_2 = np.array([[0, 0, 1]])
-        #
-        # # psi_bwd = np.array([[np.identity(len(self.psi_initial))]*self.num_time_steps]*self.num_time_steps, dtype=complex)
-        # psi_bwd = np.array([[np.identity(len(self.psi_initial))]], dtype=complex)
-        # psi_bwd = np.ones([self.num_time_steps, self.num_time_steps, 1, 1])*psi_bwd
+        # Initialize the elements used to calculate the gradient efficiently
+        psi_fwd = []
+
+        # U_k = self.eigy_expm((1j * self.dt) * self.H(pulse))
+        U_k = self.U_k
+
+        for k in range(self.num_time_steps):
+            if k == 0:
+                psi_fwd.append(self.psi_initial)
+            else:
+                # print(k)
+                psi_fwd.append(U_k[k-1] @ psi_fwd[k-1])
+        state_2 = np.array([0, 0, 1])
+
+        # psi_bwd = np.array([[np.identity(len(self.psi_initial))]*self.num_time_steps]*self.num_time_steps, dtype=complex)
+        psi_bwd = np.array(
+            [[np.identity(len(self.psi_initial))]], dtype=complex)
+        psi_bwd = np.ones(
+            [self.num_time_steps, self.num_time_steps, 1, 1])*psi_bwd
         # print(psi_bwd.shape)
         # print(psi_bwd[0, 0])
-        # for i in range(self.num_time_steps):
-        #     for k in range(0, i):
-        #         if k != 0:
-        #             psi_bwd[i, self.num_time_steps-1-i - k] = U_k[k]@psi_bwd[i, self.num_time_steps-i-k]
-        #         else:
-        #             psi_bwd[i, i - k] = U_k[k] @ np.identity(len(self.psi_initial))
-        #
-        # print(g_drag.shape)
-        # for i in range(self.num_time_steps):
-        #     for k in range(self.num_time_steps):
-        #         psi_bwd[i, k] = state_2@psi_bwd[i, k]
-        #
-        # for i in range(self.num_time_steps):
-        #     # g_drag[j, k] = 0
-        #     for k in range(i, self.num_time_steps):
-        #         for j in range(self.num_drives):
-        #             overlap = 1j*self.dt * (psi_bwd[k, i] @ self.drive_hamiltonians[j] @ psi_fwd[i])
-        #             # print(overlap.shape)
-        #             #c_final = 2 * np.real(c * np.conjugate(1j * self.dt * c_final))
-        #             # print(overlap.shape)
-        #             g_drag[j, i] += 2 * np.real(self.drag_sum * np.conjugate(overlap[j, 0]))
+        for i in range(self.num_time_steps):
+            for k in range(0, i-1):
+                if k != 0:
+                    psi_bwd[i, i-k] = U_k[k]@psi_bwd[i, i - k + 1]
+                else:
+                    # psi_bwd[i, i] = U_k[i] @ np.identity(len(self.psi_initial))
+                    pass
+        phi_bwd = np.zeros(
+            [self.num_time_steps, self.num_time_steps, 3], dtype=complex)
+        for i in range(self.num_time_steps):
+            for k in range(self.num_time_steps):
+                # print((state_2@psi_bwd[i, k]).shape)
+                phi_bwd[i, k] = state_2@psi_bwd[i, k]
+        print(phi_bwd[0, 0].shape)
+        for i in range(self.num_time_steps):
+            # g_drag[j, k] = 0
+            for k in range(0, i):
+                for j in range(self.num_drives):
+                    overlap = 1j*self.dt * \
+                        (phi_bwd[i, k] @ self.drive_hamiltonians[j] @ psi_fwd[i])
+                    # print(overlap.shape)
+                    # c_final = 2 * np.real(c * np.conjugate(1j * self.dt * c_final))
+                    # print("bwd", psi_bwd[i, k].shape)
+                    # print("fwd", psi_fwd[i].shape)
+                    # print("drive", self.drive_hamiltonians[j].shape)
+                    # print(overlap)
+                    g_drag[j, i] += 2 * \
+                        np.real(self.drag_sum * np.conjugate(overlap[0]))
 
         constraint_total = self.lambda_band_lin * g_band_lin + \
-            self.lambda_amp_lin*g_amp_lin  # + 0*g_drag*a
-        # print(constraint_total)
-        return constraint_total
+            self.lambda_amp_lin*g_amp_lin + g_drag*a
+        # print("AVG CONST GRAD", np.average(np.abs(constraint_total)))
+        return constraint_total.flatten()
 
     def run_operator(self, pulse, show_bloch=False, calc_fidelity=True, show_prob=False):
         """
@@ -405,8 +426,7 @@ class GrapePulse:
                 for i in range(len(self.psi_initial)):
                     prod = np.identity(len(self.psi_initial))
                     prodi = np.identity(len(self.psi_initial))
-                    leg.append("|" + str(int(i/5)) + "> * |" +
-                               str(i - int(i/5)*5) + ">")
+                    leg.append("|" + str(i) + ">")
                     for k in range(self.num_time_steps):
                         prodi = U_ki[k] @ prodi
                         prod = U_k[k] @ prod

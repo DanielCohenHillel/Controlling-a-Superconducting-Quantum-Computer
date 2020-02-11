@@ -131,7 +131,7 @@ def optimize_pulse_unitary_daniel(x0, constraints=True, fix_amp_max=True):
         # With Constraints
         if fix_amp_max:
             result = spopt.fmin_l_bfgs_b(get_fidelity_constraints,
-                                         np.arctanh(x0/epsilon_max), get_fidelity_gradient_constraints, factr=1e12)
+                                         np.arctanh(x0/epsilon_max), get_fidelity_gradient_constraints, factr=1e10)
         else:
             result = spopt.fmin_l_bfgs_b(
                 get_fidelity_constraints, x0, get_fidelity_gradient_constraints)
