@@ -8,7 +8,7 @@ import qutip as qt
 import warnings
 import scipy.linalg
 # warnings.filterwarnings('ignore')
-a = 0.005
+a = 0.1*10
 
 
 class GrapePulse:
@@ -140,10 +140,10 @@ class GrapePulse:
             result = spopt.fmin_l_bfgs_b(self.cost,
                                          np.arctanh(
                                              self.initial_pulse / self.max_amp), self.cost_gradient,
-                                         factr=1e11)
+                                         factr=1e12)
         else:
             result = spopt.fmin_l_bfgs_b(self.cost, np.arctanh(self.initial_pulse / self.max_amp),
-                                         self.cost_gradient, factr=1e11)
+                                         self.cost_gradient, factr=1e12)
         result = (result[0].reshape(self.num_drives,
                                     self.num_time_steps), result[1])
         self.run_operator(result[0], show_prob=True)
@@ -170,7 +170,7 @@ class GrapePulse:
         # print("Before", np.max(pulse))
         psi_final, fid = self.run_operator(pulse)
         # print("Cost time: ", str(time.time() - itime), "seconds")
-        final_fid = -fid + self.constraints * self.constraint(pulse)*0
+        final_fid = -fid + self.constraints * self.constraint(pulse)
         # print("After", np.max(pulse))
         # plt.plot(self.times, pulse[0])
         return final_fid
@@ -206,9 +206,12 @@ class GrapePulse:
 
         psi_bwd = np.array([np.identity(len(self.psi_initial))]
                            * (self.num_time_steps+1), dtype=complex)
-        for k in range(1, self.num_time_steps):
-            psi_bwd[self.num_time_steps - k -
-                    1] = psi_bwd[self.num_time_steps - k] @ U_k[self.num_time_steps - k]
+        # for k in range(1, self.num_time_steps):
+        #     psi_bwd[self.num_time_steps - k -
+        #             1] = psi_bwd[self.num_time_steps - k] @ U_k[self.num_time_steps - k]
+
+        for k in reversed(range(self.num_time_steps-1)):
+            psi_bwd[k] = psi_bwd[k+1] @ U_k[k+1]
 
         self.psi_bwd = psi_bwd  # psi_bwd before it is multiplyied by the target state
 
@@ -226,7 +229,7 @@ class GrapePulse:
                              self.num_drives, dtype=complex)
         for i, H_k in enumerate(self.drive_hamiltonians):  # TODO: Might need changing
             for k in range(self.num_time_steps):
-                c_final[k + i*self.num_time_steps] = psi_bwd[k,
+                c_final[k + i*self.num_time_steps] = psi_bwd[k-1,
                                                              0] @ H_k @ psi_fwd[k]
             # c_final[i*self.num_time_steps : (i+1)*self.num_time_steps] = psi_bwd[:, 0] @ H_k @ psi_fwd[:]
         c_final = 2 * np.real(c * np.conjugate(1j * self.dt * c_final))
@@ -236,7 +239,7 @@ class GrapePulse:
         self.psi_fwd = psi_fwd
 
         gradient = -c_final + self.constraints * \
-            self.constraint_gradient(pulse).flatten()*0
+            self.constraint_gradient(pulse).flatten()
         # print("AVG GRAD: ", np.average(np.abs(c_final)))
 
         # gradient = -c_final
