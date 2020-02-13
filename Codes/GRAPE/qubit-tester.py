@@ -17,7 +17,7 @@ def gaussian(size, sigma, amp, graph=False):
     return gaussian_window
 
 
-w = 1*0
+w = 1
 alpha = 0.05
 qubit_levels = 3
 
@@ -33,8 +33,8 @@ Hq_I = q + qd
 Hq_Q = 1j*(q - qd)
 
 # Time variables
-T = 25 * 3  # Total time of simulation
-Ns = 200  # Number of time steps
+T = 25  # Total time of simulation
+Ns = 500  # Number of time steps
 dt = T/Ns
 times = np.linspace(0.0, T, Ns)
 
@@ -82,12 +82,12 @@ itime = time.time()
 # Create the GrapePulse object :)
 test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], pulse, constraints=True, print_fidelity=True,
                               max_amp=epsilon_max, lambda_band_lin=0.0, lambda_amp_lin=0, fix_amp_max=False)
-# test_pulse.cost(pulse*2)
-# test_pulse.cost_gradient(pulse*2, debug_fidelity=True)
+test_pulse.cost(pulse*2)
+test_pulse.cost_gradient(pulse*2, debug_fidelity=True)
 # optimize with grape
-pulse, fidelity = test_pulse.optimize()
+# pulse, fidelity = test_pulse.optimize()
 print("Total time: ", time.time() - itime)
-# test_pulse.run_operator(pulse)
+# test_pulse.run_operator(pulse)+
 # Some graphs
 # Creating plots for the amplitudes
 fig, axes = plt.subplots(2)

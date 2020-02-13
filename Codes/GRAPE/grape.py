@@ -8,7 +8,8 @@ import qutip as qt
 import warnings
 import scipy.linalg
 # warnings.filterwarnings('ignore')
-a = 0.1*10
+a = 0
+state_2 = np.array([0, 0, 1])
 
 
 class GrapePulse:
@@ -25,8 +26,8 @@ class GrapePulse:
         The desired state of the qubit
     :param float total_time:
         The total time of the pulse
-    :param float num_time_steps:
-        Number of time divisions, the time vector is given by t = numpy.linspace(0, total_time, num_time_steps)
+    :param float Ns:
+        Number of time divisions, the time vector is given by t = numpy.linspace(0, total_time, Ns)
     :param ndarray base_hamiltonian:
         The hamiltonian of the system  that is not time dependent(not controled by the drives)
     :param list(ndarray) drive_hamiltonians:
@@ -52,7 +53,7 @@ class GrapePulse:
         Weather or not to print the fidelity of each iteration
     """
 
-    def __init__(self, psi_initial, psi_target,  total_time, num_time_steps, base_hamiltonian, drive_hamiltonians,
+    def __init__(self, psi_initial, psi_target,  total_time, Ns, base_hamiltonian, drive_hamiltonians,
                  initial_pulse, constraints=True, max_amp=1, epsilon_soft_max=1, lambda_band_lin=0.1,
                  lambda_amp_lin=0.03, fix_amp_max=True, print_fidelity=False):
         try:
@@ -60,11 +61,11 @@ class GrapePulse:
             self.psi_initial = np.array(psi_initial)
             self.psi_target = np.array(psi_target)
             self.total_time = np.float(total_time)
-            self.num_time_steps = int(num_time_steps)
+            self.Ns = int(Ns)
             self.base_hamiltonian = np.array(base_hamiltonian)
-            self.num_drives = len(drive_hamiltonians)
+            self.Nd = len(drive_hamiltonians)
             self.drive_hamiltonians = []
-            for i in range(self.num_drives):
+            for i in range(self.Nd):
                 self.drive_hamiltonians.append(np.array(drive_hamiltonians[i]))
             self.initial_pulse = np.array(initial_pulse)
             self.constraints = bool(constraints)
@@ -79,8 +80,9 @@ class GrapePulse:
         except TypeError:
             raise TypeError('Invalid Input')
 
-        self.times = np.linspace(0.0, total_time, num_time_steps)
-        self.dt = total_time / num_time_steps
+        self.times = np.linspace(0.0, total_time, Ns)
+        self.dt = total_time / Ns
+        self.dims = len(self.psi_initial)
 
         self._check_input()
 
@@ -112,14 +114,14 @@ class GrapePulse:
         # + '\npsi_target=' + str(targ_shape))
 
         # Checks if initial pulse is of correct dimensions based on the amount of drives
-        if not(self.initial_pulse.flatten().shape == (self.num_drives * self.num_time_steps),):
+        if not(self.initial_pulse.flatten().shape == (self.Nd * self.Ns),):
             raise ValueError('The initial pulse must be of shape \n*amount of drive hamiltonians* by '
                              '*number of time steps*, or \n*amount of drive hamiltonians* times '
                              '*number of time steps* by 1 \n'
                              'initial_pulse is ' +
                              str(self.initial_pulse.shape) +
                              ' but it needs to be '
-                             + str((self.num_drives, self.num_time_steps)))
+                             + str((self.Nd, self.Ns)))
 
         # Checks for valid input pulse(pulse is valid if it does not exceed the max amp) if fix_amp_max is True
         if self.fix_amp_max:
@@ -144,8 +146,8 @@ class GrapePulse:
         else:
             result = spopt.fmin_l_bfgs_b(self.cost, np.arctanh(self.initial_pulse / self.max_amp),
                                          self.cost_gradient, factr=1e12)
-        result = (result[0].reshape(self.num_drives,
-                                    self.num_time_steps), result[1])
+        result = (result[0].reshape(self.Nd,
+                                    self.Ns), result[1])
         self.run_operator(result[0], show_prob=True)
         return result[0:2]
 
@@ -153,27 +155,14 @@ class GrapePulse:
         """
         The cost function that the optimization algorithm seek to minimize
         :param in_pulse:
-        :return: The cost function -(fidelity - penalties)
+        :return: The cost function -fidelity + penalties
         """
-        in_pulse = in_pulse.reshape(self.num_drives, self.num_time_steps)
+        pulse = in_pulse.reshape(self.Nd, self.Ns)
 
-        if self.constraints:
-            # pulse = self.max_amp * np.tanh(in_pulse)
-            pulse = in_pulse
-        else:
-            pulse = in_pulse
-        # for i in range(self.num_drives):
-        #     pulse[i, 0] = 0
-        #     pulse[i, -1] = 0
-        # Calculates the final state and the fidelity from the run_operator function
-        itime = time.time()
-        # print("Before", np.max(pulse))
-        psi_final, fid = self.run_operator(pulse)
-        # print("Cost time: ", str(time.time() - itime), "seconds")
-        final_fid = -fid + self.constraints * self.constraint(pulse)
-        # print("After", np.max(pulse))
-        # plt.plot(self.times, pulse[0])
-        return final_fid
+        fid = self.run_operator(pulse)
+
+        fid_total = fid - self.constraints * self.constraint(pulse)
+        return -fid_total
 
     def cost_gradient(self, in_pulse, debug_fidelity=False):
         """
@@ -182,102 +171,62 @@ class GrapePulse:
         :param bool debug_fidelity: Displays graphs comparing analytical and numerical fidelities for debugging
         :return: The total gradient of the cost function
         """
+        # Reshape pulse the a more comfertable format [drive, time step]
+        pulse = in_pulse.reshape(self.Nd, self.Ns)
+        U = self.U
 
-        in_pulse = in_pulse.reshape(self.num_drives, self.num_time_steps)
-        if self.constraints:
-            pulse = self.max_amp * np.tanh(in_pulse)
-            pulse = in_pulse
-        else:
-            pulse = in_pulse
-        # for i in range(self.num_drives):
-            # pulse[i, 0] = 0
-            # pulse[i, -1] = 0
-        # Initialize the elements used to calculate the gradient efficiently
-        psi_fwd = []
-
-        U_k = self.eigy_expm((1j * self.dt) * self.H(pulse))
-        # U_k = self.U_k
-
-        for k in range(self.num_time_steps+1):
-            if k == 0:
-                psi_fwd.append(self.psi_initial)
-            else:
-                psi_fwd.append(U_k[k - 1] @ psi_fwd[-1])
-
-        psi_bwd = np.array([np.identity(len(self.psi_initial))]
-                           * (self.num_time_steps+1), dtype=complex)
-        # for k in range(1, self.num_time_steps):
-        #     psi_bwd[self.num_time_steps - k -
-        #             1] = psi_bwd[self.num_time_steps - k] @ U_k[self.num_time_steps - k]
-
-        for k in reversed(range(self.num_time_steps-1)):
-            psi_bwd[k] = psi_bwd[k+1] @ U_k[k+1]
-
-        self.psi_bwd = psi_bwd  # psi_bwd before it is multiplyied by the target state
-
-        for k in range(self.num_time_steps + 1):
-            # TODO: Might need changeing
-            psi_bwd[k] = self.psi_target.conj().T @ psi_bwd[k]
-
-        prod = np.identity(len(self.psi_initial))
-        for k in range(self.num_time_steps):
-            prod = U_k[k] @ prod
-        c = self.psi_target.conj().T @ prod @ self.psi_initial  # TODO: Might need changeing
-
-        itime = time.time()
-        c_final = np.ndarray(self.num_time_steps *
-                             self.num_drives, dtype=complex)
-        for i, H_k in enumerate(self.drive_hamiltonians):  # TODO: Might need changing
-            for k in range(self.num_time_steps):
-                c_final[k + i*self.num_time_steps] = psi_bwd[k-1,
-                                                             0] @ H_k @ psi_fwd[k]
-            # c_final[i*self.num_time_steps : (i+1)*self.num_time_steps] = psi_bwd[:, 0] @ H_k @ psi_fwd[:]
-        c_final = 2 * np.real(c * np.conjugate(1j * self.dt * c_final))
-        # print("Gradient time: ", str(time.time() - itime), "Seconds")
-
-        # *np.ndarray.flatten(self.max_amp/(np.cosh(in_pulse) ** 2))
+        # -- psi_fwd --
+        psi_fwd = [self.psi_initial]
+        for k in range(self.Ns):
+            psi_fwd.append(U[k] @ psi_fwd[-1])
+        psi_fwd = np.array(psi_fwd)
         self.psi_fwd = psi_fwd
 
-        gradient = -c_final + self.constraints * \
-            self.constraint_gradient(pulse).flatten()
-        # print("AVG GRAD: ", np.average(np.abs(c_final)))
+        # -- psi_bwd --
+        psi_bwd = np.array(
+            [np.identity(self.dims)]*(self.Ns+1), dtype=complex)
+        psi_bwd[-2] = U[-1]
 
-        # gradient = -c_final
+        for k in reversed(range(self.Ns-2)):
+            psi_bwd[k] = psi_bwd[k+1]@U[k+1]
 
+        # Multiply the U product by <psi_target| from the left
+        for k in range(self.Ns + 1):
+            psi_bwd[k] = self.psi_target.conj().T @ psi_bwd[k]
+
+        dc = np.ndarray(self.Ns * self.Nd, dtype=complex)
+        for i, H_k in enumerate(self.drive_hamiltonians):
+            for k in range(self.Ns):
+                dc[k + i*self.Ns] = psi_bwd[k-1, 0] @ H_k @ psi_fwd[k]
+
+        # --- Gradient ---
+        # Without constraints
+        gradient = 2 * np.real(self.c * np.conjugate(1j * self.dt * dc))
+        # Add constraints
+        gradient -= self.constraints*self.constraint_gradient(pulse).flatten()
+
+        # --- Debugging Tool ---
         if debug_fidelity:
-            c_fin_transpose = np.transpose(gradient)
-            fig, axes = subplots(2, 2)
-            axes[0, 0].set_title("gradient")
-            axes[0, 0].plot(
-                self.times, -c_fin_transpose[0:self.num_time_steps])
-            axes[0, 0].plot(
-                self.times, -c_fin_transpose[self.num_time_steps:2 * self.num_time_steps])
-            axes[0, 0].plot(self.times, np.zeros(self.num_time_steps))
+            c_fin_transpose = np.transpose(-gradient)
+            fig, axes = subplots(3)
+            axes[0].set_title("gradient")
+            axes[0].plot(
+                self.times, -c_fin_transpose[0:self.Ns])
+            axes[0].plot(
+                self.times, -c_fin_transpose[self.Ns:2 * self.Ns])
 
-            axes[1, 0].set_title("rough estimation of gradient")
+            axes[1].set_title("rough estimation of gradient")
             grad = -spopt.approx_fprime(np.ndarray.flatten(
                 in_pulse), self.cost, 1e-5)
-            # grad2 = -spopt.approx_fprime(np.ndarray.flatten(
-            # in_pulse), self.cost, 1e-1)
-            axes[1, 0].plot(self.times, grad[0:self.num_time_steps])
-            axes[1, 0].plot(self.times, grad[self.num_time_steps:])
-            # axes[1, 0].plot(self.times, grad2[0:self.num_time_steps])
-            # axes[1, 0].plot(self.times, grad2[self.num_time_steps:])
-            axes[1, 0].plot(self.times, np.zeros(self.num_time_steps))
+            axes[1].plot(self.times, grad[0:self.Ns])
+            axes[1].plot(self.times, grad[self.Ns:])
 
-            axes[0, 1].set_title("QI")
-            axes[0, 1].plot(self.times, pulse[0])
-            axes[0, 1].plot(self.times, np.zeros(self.num_time_steps))
+            axes[2].set_title("QI")
+            axes[2].plot(self.times, pulse[0])
+            axes[2].set_title("QQ")
+            axes[2].plot(self.times, pulse[1])
 
-            axes[1, 1].set_title("QQ")
-            axes[1, 1].plot(self.times, in_pulse[0])
-            axes[1, 1].plot(self.times, np.zeros(self.num_time_steps))
-
-        # for i in range(self.num_drives):
-        #     gradient[0, i*self.num_time_steps] = 0
-        #     gradient[0, i*self.num_time_steps - 1] = 0
-
-        return gradient
+        return -gradient
 
     def constraint(self, pulse):
         """
@@ -285,48 +234,32 @@ class GrapePulse:
         :param pulse:
         :return: The total Lagrange multipliers
         """
-        pulse = pulse.reshape(self.num_drives, self.num_time_steps)
+        pulse = pulse.reshape(self.Nd, self.Ns)
+
+        # --- Amplitude ---
+        amp_const = np.average(pulse**2)
+        amp_const *= self.lambda_amp_lin
+
+        # --- Bandwidth ---
         slope = pulse[:, 1:] - pulse[:, :-1]
-        bandwidth_constraint = np.sum(slope**2)
-        amplitude_constraint = np.average(pulse**2)
-        # print(np.max(pulse))
-        # print(amplitude_constraint)
-        # DRAG constraints
-        # Initialize the elements used to calculate the gradient efficiently
+        band_const = np.sum(slope**2)
+        band_const *= self.lambda_band_lin
+
+        # --- DRAG ---
+        # -- psi_bwd --
         psi_fwd = []
-
-        U_k = self.eigy_expm((1j * self.dt) * self.H(pulse))
-        # U_k = self.U_k
-
-        for k in range(self.num_time_steps+1):
+        for k in range(self.Ns+1):
             if k == 0:
                 psi_fwd.append(self.psi_initial)
             else:
-                psi_fwd.append(U_k[k - 1] @ psi_fwd[-1])
-        self.psi_fwd = psi_fwd
-        # print(len(psi_fwd))
+                psi_fwd.append(self.U[k - 1] @ psi_fwd[-1])
 
-        # DRAG - start
+        # -- Forbidden --
+        forb_const = np.sum(np.abs(state_2 @ psi_fwd)**2)
+        forb_const *= a
 
-        g_drag = 0
-        # population = np.zeros(self.num_time_steps)
-        state_2 = np.array([0, 0, 1])
-        # print(psi_fwd[0].shape)
-        for i in range(self.num_time_steps+1):
-            g_drag += np.abs(state_2 @ psi_fwd[i])**2
-            # population[i] = np.abs(state_2 @ psi_fwd[i])**2
-        # plt.plot(self.times, population)
-        self.drag_sum = g_drag
-        # print(g_drag)
-        # DRAG - end
-        constraint_total = self.lambda_amp_lin * amplitude_constraint \
-            + self.lambda_band_lin * bandwidth_constraint \
-            + g_drag*a
-
-        # print("\n-)Constraint Total: ", constraint_total) if self.print_fidelity else None
-        # print("AVG CONST", constraint_total)
-        # print(constraint_total)
-        # print("DRAG ", g_drag[0, 0]*a)
+        # --- Total ---
+        constraint_total = amp_const + band_const + forb_const
         return constraint_total.flatten()
 
     def constraint_gradient(self, pulse):
@@ -335,118 +268,59 @@ class GrapePulse:
         :param pulse:
         :return: The gradient of the Lagrange multipliers
         """
-        # print(pulse.shape)
         constraint_total = np.zeros(pulse.shape)
+        # --- Amplitude ---
+        g_amp_lin = 2 * self.lambda_amp_lin * pulse
+
+        # --- Bandwidth ---
         g_band_lin = np.zeros(pulse.shape)
-        g_amp_lin = np.zeros(pulse.shape)
-        g_drag = np.zeros(pulse.shape)
 
         g_band_lin[:, 0] = -2 * (pulse[:, 1] - pulse[:, 0])
         g_band_lin[:, -1] = 2*(pulse[:, -1] - pulse[:, -2])
+
         g_band_lin[:, 1:-1] = 4 * pulse[:, 1:-1] - \
             2 * (pulse[:, 2:] + pulse[:, :-2])
 
-        g_amp_lin = 2*pulse
+        g_band_lin *= self.lambda_band_lin
 
-        # DRAG - start
-        # Initialize the elements used to calculate the gradient efficiently
+        # --- DRAG ---
+        g_drag = np.zeros(pulse.shape)
         psi_fwd = self.psi_fwd
-        # U_k = self.U_k
-
-        U_k = self.eigy_expm((1j * self.dt) * self.H(pulse))
-
-        state_2 = np.array([0, 0, 1])
-
-        # psi_bwd = np.array([[np.identity(len(self.psi_initial))]*self.num_time_steps]*self.num_time_steps, dtype=complex)
+        U = self.U
+        # -- psi_bwd --
         psi_bwd = np.array(
-            [[np.identity(len(self.psi_initial))]], dtype=complex)
-        psi_bwd = np.ones(
-            [self.num_time_steps, self.num_time_steps, 1, 1])*psi_bwd
-        # print(psi_bwd.shape)
-        # print(psi_bwd[0, 0])
-        for i in range(self.num_time_steps):
-            for k in range(0, i-1):
-                if k != 0:
-                    psi_bwd[i, i-k] = U_k[k]@psi_bwd[i, i - k + 1]
-                else:
-                    # psi_bwd[i, i] = U_k[i] @ np.identity(len(self.psi_initial))
-                    pass
-        phi_bwd = np.zeros(
-            [self.num_time_steps, self.num_time_steps, 3], dtype=complex)
+            [np.identity(self.dims)]*(self.Ns+1), dtype=complex)
+        psi_bwd[-2] = U[-1]
 
-        for i in range(self.num_time_steps):
-            for k in range(self.num_time_steps):
-                # print((state_2@psi_bwd[i, k]).shape)
-                phi_bwd[i, k] = state_2@psi_bwd[i, k]
+        for k in reversed(range(self.Ns-2)):
+            psi_bwd[k] = psi_bwd[k+1]@U[k+1]
 
-        # psi_bwd = self.psi_bwd
-
-        # print(phi_bwd[0, 0].shape)
-        # itime = time.time()
-
-        # population = np.zeros(self.num_time_steps, dtype=complex)
-        # for i in range(self.num_time_steps-1):
-        #     # g_drag[j, k] = 0
-        #     for k in range(0, i):
-        #         for j in range(self.num_drives):
-        #             # print(U_k[-1]@U_k[-2])
-        #             # print("psi:", psi_bwd[k].shape)
-        #             phi_bwd = state_2 @  (psi_bwd_inv[i+1] @ psi_bwd[k+1])
-        #             overlap = 1j*self.dt * \
-        #                 (phi_bwd @ self.drive_hamiltonians[j] @ psi_fwd[i])
-        #             # population[i] += overlap[0]
-        #             # print("phi:", phi_bwd.shape)
-        #             # print(overlap.shape)
-        #             # c_final = 2 * np.real(c * np.conjugate(1j * self.dt * c_final))
-        #             # print("bwd", psi_bwd[i, k].shape)
-        #             # print("fwd", psi_fwd[i].shape)
-        #             # print("drive", self.drive_hamiltonians[j].shape)
-        #             # print(overlap[0])
-
-        #             g_drag[j, i] += 2 * \
-        #                 np.real(self.drag_sum * np.conjugate(overlap[0]))
-        # TODO: This can be much more efficient VVV
-        psi_bwd = np.array(
-            [np.identity(len(self.psi_initial))]*(self.num_time_steps+1), dtype=complex)
-        # print(psi_bwd.shape)
-        psi_bwd[-2] = U_k[-1]
-
-        for k in reversed(range(self.num_time_steps-2)):
-            psi_bwd[k] = psi_bwd[k+1]@U_k[k+1]
-
+        # -- psi_bwd^-1 --
         psi_bwd_inv = np.linalg.inv(psi_bwd)
-        # print(len(psi_fwd))
 
-        a0 = -1
-        a1 = -1
-        a2 = 0
-        a3 = 0
-        a4 = 1
+        # -- Forbiden Constraint Gradient ---
+        for k in range(self.Ns):
+            for i in range(k, self.Ns):
+                for j in range(self.Nd):
+                    phi = state_2 @ psi_bwd_inv[i] @ psi_bwd[k]
+                    overlap = 1j * self.dt * \
+                        phi @ self.drive_hamiltonians[j] @ psi_fwd[k+1]
+                    cc = state_2 @ psi_fwd[i+1]
 
-        for k in range(self.num_time_steps):
-            for i in range(k, self.num_time_steps):
-                # if k == 0:
-                #     print("NOOO")
-                for j in range(self.num_drives):
-                    phi = state_2 @ psi_bwd_inv[i + a0] @ psi_bwd[k+a1]
-                    overlap = a4*1j * self.dt * \
-                        phi @ self.drive_hamiltonians[j] @ psi_fwd[k + a2]
-                    cc = state_2 @ psi_fwd[i + a3]
-
-                    # print(np.real(cc[0]))
                     g_drag[j, k] += a*2 * \
                         np.real(cc * np.conjugate(overlap[0]))
+        # for k in range(self.Ns):
+        #     # for j in range(self.Nd):
+        #     phi = state_2 @ psi_bwd_inv[k:-2] @ psi_bwd[k]
+        #     overlap = 1j * self.dt * \
+        #         phi @ self.drive_hamiltonians[] @ psi_fwd[k+1]
+        #     cc = state_2 @ psi_fwd[k+1:-1]
 
-        # print(population.shape)
-        # plt.figure()
-        # plt.plot(self.times, population)
-        # print("time bwd:", time.time() - itime)
+        #     g_drag[:, k] = np.sum(a*2 *
+        #                           np.real(cc * np.conjugate(overlap)))
 
-        # DRAG - end
-
-        constraint_total = self.lambda_band_lin * g_band_lin + \
-            self.lambda_amp_lin*g_amp_lin + g_drag*a
-        # print("AVG CONST GRAD", np.average(np.abs(constraint_total)))
+        # --- Total ---
+        constraint_total = g_band_lin + g_amp_lin + g_drag*a
         return constraint_total.flatten()
 
     def run_operator(self, pulse, show_bloch=False, calc_fidelity=True, show_prob=False):
@@ -458,40 +332,40 @@ class GrapePulse:
         :param boolean show_prob: Weather or not to show the probabilities of each state over the pulse
         :return:
         """
-        prod = np.identity(len(self.psi_initial))
+        prod = np.identity(self.dims)
         if show_bloch:  # TODO: Defiantly need changing
             b = qt.Bloch()
             b.add_states(self.psi_initial)
-            U_k = self.eigy_expm((1j * self.dt) * self.H(pulse))
-            for k in range(self.num_time_steps):
-                prod = U_k[k] @ prod
+            U = self.eigy_expm((1j * self.dt) * self.H(pulse))
+            for k in range(self.Ns):
+                prod = U[k] @ prod
                 b.add_states(prod * self.psi_initial, kind='point')
             psi_final = prod @ self.psi_initial
             b.add_states(psi_final)
             b.show()
         else:
-            U_k = self.eigy_expm((1j * self.dt) * self.H(pulse))
-            self.U_k = U_k
+            U = self.eigy_expm((1j * self.dt) * self.H(pulse))
+            self.U = U
 
             if show_prob:
-                U_ki = self.eigy_expm((1j * self.dt) *
-                                      self.H(np.reshape(self.initial_pulse, (self.num_drives, self.num_time_steps))))
+                Ui = self.eigy_expm((1j * self.dt) *
+                                    self.H(np.reshape(self.initial_pulse, (self.Nd, self.Ns))))
                 initial_prob = np.zeros(
-                    [len(self.psi_initial), self.num_time_steps])
+                    [self.dims, self.Ns])
                 final_prob = np.zeros(
-                    [len(self.psi_target), self.num_time_steps])
+                    [self.dims, self.Ns])
                 fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
                 ax1.set_title("Initial")
                 ax2.set_title("Final")
                 leg = []
                 wig = []
-                for i in range(len(self.psi_initial)):
-                    prod = np.identity(len(self.psi_initial))
-                    prodi = np.identity(len(self.psi_initial))
+                for i in range(self.dims):
+                    prod = np.identity(self.dims)
+                    prodi = np.identity(self.dims)
                     leg.append("|" + str(i) + ">")
-                    for k in range(self.num_time_steps):
-                        prodi = U_ki[k] @ prodi
-                        prod = U_k[k] @ prod
+                    for k in range(self.Ns):
+                        prodi = Ui[k] @ prodi
+                        prod = U[k] @ prod
                         initial_prob[i, k] = np.abs(
                             (prodi @ self.psi_initial)[i]) ** 2
                         final_prob[i, k] = np.abs(
@@ -507,41 +381,42 @@ class GrapePulse:
                 return psi_final
             else:
                 itime = time.time()
-                for k in range(self.num_time_steps):
-                    prod = U_k[k] @ prod
+                for k in range(self.Ns):
+                    prod = U[k] @ prod
                 # print("Operator time: ", str(time.time() - itime), "Seconds")
                 psi_final = prod @ self.psi_initial  # TODO: Might need changing
                 # print("OP Time: ", str(time.time() - itime))
 
         if calc_fidelity:
-            fid = np.abs(self.psi_target.conj().T @ psi_final)[
-                0, 0] ** 2  # np.abs is element-wise absolute value
+            c = (self.psi_target.conj().T @ psi_final)[0, 0]
+            self.c = c
+            fid = np.abs(c) ** 2
             print("\n-> Fidelity: ", fid) if self.print_fidelity else None
-            return psi_final, fid
+            return fid
         return psi_final
 
     def H(self, pulse):
         """
         Get the total hamiltonian(base + drive hamiltonians) of a given pulse at a given index
         :param pulse: Pulse to calculate the drive hamiltonian
-        :param k: Index of the hamiltonian (from 0 to num_time_steps)
+        :param k: Index of the hamiltonian (from 0 to Ns)
         :return: The total hamiltonian at index k
         """
         H = np.array([self.base_hamiltonian] *
-                     self.num_time_steps)  # TODO: Might need changing
+                     self.Ns)  # TODO: Might need changing
         # TODO: Might need changing
-        HT = np.array([self.base_hamiltonian] * self.num_time_steps)
+        HT = np.array([self.base_hamiltonian] * self.Ns)
         # print(H[:,0,0].shape)
         for i, H_k in enumerate(self.drive_hamiltonians):
-            H += pulse[i, :].reshape(self.num_time_steps, 1, 1)*H_k
+            H += pulse[i, :].reshape(self.Ns, 1, 1)*H_k
             # itime = time.time()
-            # for j in range(len(self.psi_initial)):
-            #     for k in range(len(self.psi_initial)):
+            # for j in range(self.dims):
+            #     for k in range(self.dims):
             #         H[:, j, k] += H_k[j, k]*pulse[i, :]
             # og = time.time() - itime
             # print("H og time: ", str(time.time() - itime))
-            # a = pulse.reshape(self.num_time_steps*self.num_drives, 1, 1)*H_k
-            # print(HT[i*self.num_time_steps:(i+1)*self.num_time_steps, :, :].shape)
+            # a = pulse.reshape(self.Ns*self.Nd, 1, 1)*H_k
+            # print(HT[i*self.Ns:(i+1)*self.Ns, :, :].shape)
             # print(i)
             # print(len(HT[:)
             # itime = time.time()
