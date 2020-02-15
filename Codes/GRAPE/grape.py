@@ -8,7 +8,7 @@ import qutip as qt
 import warnings
 import scipy.linalg
 # warnings.filterwarnings('ignore')
-a = 0
+a = 1
 state_2 = np.array([0, 0, 1])
 
 
@@ -161,7 +161,7 @@ class GrapePulse:
 
         fid = self.run_operator(pulse)
 
-        fid_total = fid - self.constraints * self.constraint(pulse)
+        fid_total = fid*0 - self.constraints * self.constraint(pulse)
         return -fid_total
 
     def cost_gradient(self, in_pulse, debug_fidelity=False):
@@ -200,8 +200,8 @@ class GrapePulse:
                 dc[k + i*self.Ns] = psi_bwd[k-1, 0] @ H_k @ psi_fwd[k]
 
         # --- Gradient ---
-        # Without constraints
-        gradient = 2 * np.real(self.c * np.conjugate(1j * self.dt * dc))
+        # Before constraints
+        gradient = 0*2 * np.real(self.c * np.conjugate(1j * self.dt * dc))
         # Add constraints
         gradient -= self.constraints*self.constraint_gradient(pulse).flatten()
 
@@ -225,6 +225,8 @@ class GrapePulse:
             axes[2].plot(self.times, pulse[0])
             axes[2].set_title("QQ")
             axes[2].plot(self.times, pulse[1])
+            print("All cose: ", np.allclose(
+                grad[1: -1], c_fin_transpose[1:-1]))
 
         return -gradient
 
@@ -244,15 +246,12 @@ class GrapePulse:
         slope = pulse[:, 1:] - pulse[:, :-1]
         band_const = np.sum(slope**2)
         band_const *= self.lambda_band_lin
-
+        
         # --- DRAG ---
-        # -- psi_bwd --
-        psi_fwd = []
-        for k in range(self.Ns+1):
-            if k == 0:
-                psi_fwd.append(self.psi_initial)
-            else:
-                psi_fwd.append(self.U[k - 1] @ psi_fwd[-1])
+        # -- psi_fwd --
+        psi_fwd = [self.psi_initial]
+        for k in range(self.Ns):
+            psi_fwd.append(self.U[k - 1] @ psi_fwd[-1])
 
         # -- Forbidden --
         forb_const = np.sum(np.abs(state_2 @ psi_fwd)**2)
@@ -309,15 +308,6 @@ class GrapePulse:
 
                     g_drag[j, k] += a*2 * \
                         np.real(cc * np.conjugate(overlap[0]))
-        # for k in range(self.Ns):
-        #     # for j in range(self.Nd):
-        #     phi = state_2 @ psi_bwd_inv[k:-2] @ psi_bwd[k]
-        #     overlap = 1j * self.dt * \
-        #         phi @ self.drive_hamiltonians[] @ psi_fwd[k+1]
-        #     cc = state_2 @ psi_fwd[k+1:-1]
-
-        #     g_drag[:, k] = np.sum(a*2 *
-        #                           np.real(cc * np.conjugate(overlap)))
 
         # --- Total ---
         constraint_total = g_band_lin + g_amp_lin + g_drag*a
@@ -333,59 +323,41 @@ class GrapePulse:
         :return:
         """
         prod = np.identity(self.dims)
-        if show_bloch:  # TODO: Defiantly need changing
-            b = qt.Bloch()
-            b.add_states(self.psi_initial)
-            U = self.eigy_expm((1j * self.dt) * self.H(pulse))
+        U = self.eigy_expm((1j * self.dt) * self.H(pulse))
+        self.U = U
+
+        if show_prob:
+            Ui = self.eigy_expm((1j * self.dt) *
+                                self.H(np.reshape(self.initial_pulse, (self.Nd, self.Ns))))
+            initial_prob = np.zeros(
+                [self.dims, self.Ns])
+            final_prob = np.zeros(
+                [self.dims, self.Ns])
+            fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+            ax1.set_title("Initial")
+            ax2.set_title("Final")
+            leg = []
+            wig = []
+            for i in range(self.dims):
+                prod = np.identity(self.dims)
+                prodi = np.identity(self.dims)
+                leg.append("|" + str(i) + ">")
+                for k in range(self.Ns):
+                    prodi = Ui[k] @ prodi
+                    prod = U[k] @ prod
+                    initial_prob[i, k] = np.abs(
+                        (prodi @ self.psi_initial)[i]) ** 2
+                    final_prob[i, k] = np.abs(
+                        (prod @ self.psi_initial)[i]) ** 2
+                ax1.plot(self.times, initial_prob[i, :])
+                ax2.plot(self.times, final_prob[i, :])
+            ax1.legend(leg)
+            psi_final = prod @ self.psi_initial
+            return psi_final
+        else:
             for k in range(self.Ns):
                 prod = U[k] @ prod
-                b.add_states(prod * self.psi_initial, kind='point')
             psi_final = prod @ self.psi_initial
-            b.add_states(psi_final)
-            b.show()
-        else:
-            U = self.eigy_expm((1j * self.dt) * self.H(pulse))
-            self.U = U
-
-            if show_prob:
-                Ui = self.eigy_expm((1j * self.dt) *
-                                    self.H(np.reshape(self.initial_pulse, (self.Nd, self.Ns))))
-                initial_prob = np.zeros(
-                    [self.dims, self.Ns])
-                final_prob = np.zeros(
-                    [self.dims, self.Ns])
-                fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-                ax1.set_title("Initial")
-                ax2.set_title("Final")
-                leg = []
-                wig = []
-                for i in range(self.dims):
-                    prod = np.identity(self.dims)
-                    prodi = np.identity(self.dims)
-                    leg.append("|" + str(i) + ">")
-                    for k in range(self.Ns):
-                        prodi = Ui[k] @ prodi
-                        prod = U[k] @ prod
-                        initial_prob[i, k] = np.abs(
-                            (prodi @ self.psi_initial)[i]) ** 2
-                        final_prob[i, k] = np.abs(
-                            (prod @ self.psi_initial)[i]) ** 2
-                        # wig.append(qt.Qobj(prod @ self.psi_initial, [[2, 5], [1, 1]]).ptrace(1))
-                    ax1.plot(self.times, initial_prob[i, :])
-                    ax2.plot(self.times, final_prob[i, :])
-                ax1.legend(leg)
-                psi_final = prod @ self.psi_initial
-                # for i in range(10):
-                #     print(int((len(wig)/10)*i))
-                # qt.plot_wigner(qt.Qobj(prod @ self.psi_initial, [[2, 20], [1, 1]]).ptrace(1))
-                return psi_final
-            else:
-                itime = time.time()
-                for k in range(self.Ns):
-                    prod = U[k] @ prod
-                # print("Operator time: ", str(time.time() - itime), "Seconds")
-                psi_final = prod @ self.psi_initial  # TODO: Might need changing
-                # print("OP Time: ", str(time.time() - itime))
 
         if calc_fidelity:
             c = (self.psi_target.conj().T @ psi_final)[0, 0]
@@ -402,36 +374,18 @@ class GrapePulse:
         :param k: Index of the hamiltonian (from 0 to Ns)
         :return: The total hamiltonian at index k
         """
-        H = np.array([self.base_hamiltonian] *
-                     self.Ns)  # TODO: Might need changing
-        # TODO: Might need changing
-        HT = np.array([self.base_hamiltonian] * self.Ns)
-        # print(H[:,0,0].shape)
+        H = np.array([self.base_hamiltonian] * self.Ns)
+
         for i, H_k in enumerate(self.drive_hamiltonians):
             H += pulse[i, :].reshape(self.Ns, 1, 1)*H_k
-            # itime = time.time()
-            # for j in range(self.dims):
-            #     for k in range(self.dims):
-            #         H[:, j, k] += H_k[j, k]*pulse[i, :]
-            # og = time.time() - itime
-            # print("H og time: ", str(time.time() - itime))
-            # a = pulse.reshape(self.Ns*self.Nd, 1, 1)*H_k
-            # print(HT[i*self.Ns:(i+1)*self.Ns, :, :].shape)
-            # print(i)
-            # print(len(HT[:)
-            # itime = time.time()
-            # nonog = time.time() - itime
-            # print("Improvement: ", str((nonog/og- 1)*100), "%")
-            # print(HT-H)
-            # H[:, 0, 1] += H_k[0, 1]*pulse[i, :]
-            # H[:, 1, 0] += H_k[1, 0]*pulse[i, :]
-            # H[:, 1, 1] += H_k[1, 1]*pulse[i, :]
         return H
 
-    def eigy_expm(self, A):
-        vals, vects = np.linalg.eig(A)
-        return np.einsum('...ik, ...k, ...kj -> ...ij',
-                         vects, np.exp(vals), np.linalg.inv(vects))
-        # for i in range(len(A)):
-        #     A[i] = scipy.linalg.expm(A[i])
-        # return A
+    def eigy_expm(self, A, method="eigen"):
+        if method == "eigen":
+            vals, vects = np.linalg.eig(A)
+            return np.einsum('...ik, ...k, ...kj -> ...ij',
+                             vects, np.exp(vals), np.linalg.inv(vects))
+        if method == "direct`":
+            for M in A:
+                M = scipy.linalg.exp(M)
+            return A
