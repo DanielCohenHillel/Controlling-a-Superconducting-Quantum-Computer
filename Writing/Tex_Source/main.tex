@@ -152,11 +152,11 @@
 \newpage
 \section{Introduction}
 \subsection{What is a Quantum Computer?}
-We'll assume the reader understands the basics of computing and quantum mechanics, here's a brief overview. \newline
- A classical computer is, essentially, a calculator, not of "Regular" numbers but of \textit{binary numbers}\footnote{ add further reading about binary numbers}. % TODO: <---
- A \textit{binary digit}("\textit{bits}" from now on) can be in one of two states, usually represented by 0 and 1. We can use \textit{logic gates} to control and manipulate bits to do all kinds of calculations\footnote{Additional information about bit calculation}. This is the building blocks of the classical computer, with the ability to do calculation with bits, and the ability to store bits in the memory we are able to construct a computer.
+We'll assume the reader is familiar with the basics of computing and quantum mechanics, here's a brief overview. \newline
+ A classical computer is, essentially, a calculator, not of "Regular" numbers but of \textit{binary numbers}. % TODO: Maybe add some further readings about binary numbers
+ A \textit{binary digit}("\textit{bits}" from now on) can be in one of two states, usually represented by 0 and 1. We can use \textit{logic gates} to control and manipulate bits to do all kinds of calculations. These are the building blocks of the classical computer, with the ability to do calculation with bits, and the ability to store bits in the memory we are able to construct a computer.
  
-So what is a quantum computer then? Well, if the classical computer uses bits to do calculations, a quantum computer uses \textit{quantum bits}("\textit{qubits}" from now on) for it's calculations. A qubit, much the same as a bit, has 2 states, a 0 state and a 1 state(notated $\ket{0}$ and $\ket{1}$ for reasons we'll see later), the difference is that a qubit can be in a \textit{superposition} of the 2 states, we can use that property to our advantage to create new type of computation.
+So what is a quantum computer then? Well, if the classical computer uses bits to do calculations, a quantum computer uses \textit{quantum bits}("\textit{qubits}" from now on) for it's calculations. A qubit, much the same as a bit, has 2 states, a 0 state and a 1 state(notated $\ket{0}$ and $\ket{1}$ for reasons we'll see later), the difference is that a qubit can be in a \textit{superposition} of the 2 states, we can use this property to our advantage to create new type of computation.
 
 \subsection{Qubits and Quantum Gates}
 Mathematically, we think of qubits as 2-dimensional vectors, where the first term corresponds to the $\ket{0}$ state and the second term corresponds to the $\ket{1}$ state, so a qubit in a state $\frac{1}{\sqrt{2}} \ket{0} + \frac{1}{\sqrt{2}} \ket{1}$ can be represented as
@@ -166,14 +166,16 @@ Mathematically, we think of qubits as 2-dimensional vectors, where the first ter
     \frac{1}{\sqrt{2}} 
 \end{pmatrix} = \frac{1}{\sqrt{2}} \ket{0} + \frac{1}{\sqrt{2}} \ket{1}
 \]
-In this world of qubits as vectors, we think of logic gates, known as \textit{quantum gates}, as matrices\footnote{There is a requirement that the matrices will be unitary}, and when the qubit goes through the logic gate, the result is multiplying the matrix by the qubit. Let's see an example for one of the simplest logic gates we have in classical computing, the NOT gate, a quantum implementation of this gate will take $\ket{0}$ to $\ket{1}$ and $\ket{1}$ to $\ket{0}$), the matrix that achieves this is 
+The value of each state is correlated to the probability of the qubit to be in that state. The probability is given by the absolute value of that state squared, so in this example, the qubit has a $50\%$ chance to be in the $\ket{0}$ state and a $50\%$ chance to be in the $\ket{1}$ state.
+
+In this world of qubits as vectors, we think of logic gates, known as \textit{quantum gates}, as matrices\footnote{Under the constraint that the matrices are unitary}, and when the qubit goes through the logic gate, the result is multiplying the matrix by the qubit. Let's see an example for one of the simplest logic gates we have in classical computing, the NOT gate, a quantum implementation of this gate takes $\ket{0}$ to $\ket{1}$ and $\ket{1}$ to $\ket{0}$), the matrix that achieves this is 
 \[
 \begin{pmatrix}
     0 & 1 \\
     1 & 0
 \end{pmatrix}
 \]
-Also called $\sigma_1$\footnote{known as the Pauli matrix 1}. We can see that if we, for example, input a $\ket{0}$ into that quantum gate, we get as a result
+Known as $\sigma_1$(Pauli matrix 1). Let's look at a simple example to see how this works, if we input $\ket{0}$ into the NOT quantum gate, we get as a result
 \[
 NOT \ket{0} = 
 \begin{pmatrix}
@@ -189,8 +191,9 @@ NOT \ket{0} =
     1
 \end{pmatrix} = \ket{1}
 \]
-As we expected. There are many more 1-qubit quantum gates we can think of(infinite amount actually). The interesting thing is that in classical computing, we only have 4 possible logic gates on a single bit(compared to infinite amount for qubit), these are the identity(do nothing), the NOT, output always 1, and output always 0. % TODO: Horrible wording
-The last thing we need to know to understand the basic of quantum computing, is how to treat multiple qubits. If we have sevral of qubits in our system, we think of all the qubits together as one vector that is the \textit{tensor product}\footnote{Kronecker product to be precise} of all the qubits, so let's say we have a $\ket{0}$ and $\ket{1}$ qubits in our system, we represent that by $\ket{01}$ and it is equal to
+As we expected, NOT $\ket{0}$ is $\ket{1}$. There are many more 1-qubit quantum gates we can think of(infinite amount actually). The interesting thing is that in classical computing, we only have 4 possible logic gates on a single bit(compared to infinite amount for qubit), these are the identity(do nothing) gate, the NOT gate, the output always 1 gate, and output always 0 gate. There are quantum equivalent to all of these gates, we won't get into that now.
+
+The last thing we need to know to understand the basic of quantum computing, is how to treat multiple qubits. If we have several of qubits in our system, we think of all the qubits together as one vector that is the \textit{tensor product}\footnote{Represented as a Kronecker product for the dimensions sake} of all the qubits. Lets say we have a $\ket{0}$ and $\ket{1}$ qubits in our system, we represent that by $\ket{01}$ and it is equal to
 \[\ket{01} = \ket{0} \otimes \ket{1} =
 \begin{pmatrix}
     0 \\
@@ -198,21 +201,28 @@ The last thing we need to know to understand the basic of quantum computing, is 
     0 \\
     0
 \end{pmatrix}\]
-And a quantum gate on multiple qubits is simply a larger matrix. 
-The thing about the tensor product is that for N qubits, it has $2^N$ coefficients(!) % TODO: Make the reader excited about this or something, more is needed
+And a quantum gate on multiple qubits is simply a larger matrix.
+
+The thing about the tensor product is that for N qubits, it has $2^N$ coefficients! This is yet another clue of the power that quantum computers have compared to classical computers. 
 
 Now that we have the basic tools of quantum computing, we can use them to get motivation for the amazing things quantum computers can do
 
 \subsection{Algorithms and Further motivation}
 % TODO: add the example of the black-box gate and lead to shor's algorithm(no actual explenation of the algorithm but explain that with some work you can get to it) to motivation the reader
-...
-\subsection{Superconducting Quantum Computers}  % TODO: Maybe put this under the "Our SYstem" chapter?
+ \begin{quotation}
+  \say{Nature isn't classical, dammit, and if you want to make a simulation of nature, you'd better make it quantum mechanical, and by golly it's a wonderful problem, because it doesn't look so easy.}
+ \end{quotation}
+\centerline{- Richard Feynman}
+Quantum computation is a cool idea and all, but it becomes much more interesting when you think of the possibilities of its uses. From simulation of drugs for developments of new cures to unbreakable encryption, quantum computing promises a lot. 
+
+One of the most famous algorithms in quantum computing is \textit{Shor's algorithm}. Shor's algorithm is a quantum algorithm to factor large numbers, in classical computing the best way to factor a number is to try all the numbers smaller then it and check if they devise the number. This is a really slow way to do it and basically impossible for computers to do(it might take thousands of years to factor one number on a classical computer). For this reason, almost everything is encrypted in a way that to decrypt information you're not supposed to see, you need to factor a really big number\footnote{This is called RSA encryption}. With classical computers this is a nearly impossible problem that could take thousands of years, but quantum computers can solve it in seconds with Shor's algorithm. This is a great example of the power in quantum computing.
+
+\subsection{Superconducting Quantum Computers}  % TODO: Maybe put this under the "Controlling a superconducting quantum computer" chapter?
 The physical implementation of the qubit itself isn't to subject of this project but we can look a bit on how you would implement such a thing. A problem we face when making a quantum computer is would physical phenomena would actually be the qubit. For classical computer we already have this figured out for years, the bit is the voltage on a wire, 1 is one there is voltage on the wire and 0 is if there's none, simple. For a quantum computer this is much more complicated, there are many quantum phenomena we can use as our qubit, such as the energy level of an atom, the spin of an electron, the polarization of photons and so on. This project is about a \textit{superconducting} quantum computer, with superconducting  qubits.
 
 Superconducting qubits are microwave circuits in which the cooper-pair condensate effectively behaves as a one-dimensional quantized particle. By inserting Josephson junctions, the circuit can be made nonlinear, allowing us to isolate the qubit from higher-energy levels and treat it as a two  level system(instead of the many level system that it really is).
-% TODO: This need to be built from the ground up and can't be all by the way-y. Need to ask Serge and read about superconductors a bit, look into BCS theory
-% TODO: Need to explain much on superconductors and cooper pairs
-% TODO: Much more to add
+% TODO: This need to be built from the ground up and can't be all by the way-y. Need to ask Serge and read about superconductors a bit, look into BCS theory, Need to explain much on superconductors and cooper pairs
+
 
 \newpage
 \section{Quantum Optics}
@@ -441,7 +451,7 @@ We can write while approximating $\omega_0 \approx \omega$
         &\hat{\sigma}_-\hat{a} \sim e^{-i(\omega_0 + \omega)t}
     \end{split}
 \end{equation}
-We can see that the last two term vary much more rapidly than the first two. Furthermore, the last two terms do not conserve energy(They correlate to [photon addition + atom excitation] and [photon reduction + atom grounded]), we're going to drop the last two terms and finally get
+We can see that the last two term vary much more rapidly than the first two. Furthermore, the last two terms do not conserve energy(They correlate to [photon addition + atom excitation] and [photon reduction + atom grounded]), we're going to drop the last fast rotating terms\footnote{This is called the \textit{Rotating Wave Approximation} or RWA in short} and finally get
 \begin{equation}
     \boxed{H_{interaction} = \hbar\lambda(\hat{\sigma}_+\hat{a} + \hat{\sigma}_-\hat{a}^\dag)}
 \end{equation}
@@ -457,8 +467,8 @@ Finally, we can write the full JC Hamiltonian
 
 \subsubsection{Effective Hamiltonian at the Disspersive Limit}
 ...
-\subsubsection{Interaction with the Classical Field}
-As you might have noticed, we are classical creatures, I'm not in a superposition of being here and on the moon at the same time :(. As classical creatures, if we want to interact with the quantum world we need to do so with a classical interface. Back to the Jaynes-Cummings model, what happens when we introduce a classical electromagnetic field(such as the drives of the system, which are the main subject of this project)
+\subsubsection{Interaction with the Classical Field} \label{sec:interaction-with_classical-field}
+As you might have noticed, we are classical creatures, I'm (unfortunately) not in a superposition of being here and on the moon at the same time :(. As classical creatures, if we want to interact with the quantum world we need to do so with in classical means with a classical interface to the quantum world. Back to the Jaynes-Cummings model, what happens when we introduce a classical electromagnetic field(such as the drives of the system, which are the main subject of this project)
 
 \subsection{Coherent States}
 ...
@@ -510,18 +520,19 @@ As you might have noticed, we are classical creatures, I'm not in a superpositio
 
 \newpage
 \section{Optimal Control}\label{chap:optimal}
+This chapter is the main topic of this project, we tackle the problem of \textit{Quantum Optimal Control}. If we have a quantum system, the way we control the system is by sending some (classical)electromagnetic pulse to the system. Now an obvious question arises, what is this pulse? How does it look like? sin? cos? In what frequency? Some other wave? What does it do?
+
+Turns out this is not that simple of a question. In the rest of the chapter we'll try to give an answer to this question using something called \textit{GRAPE}.
 
 \subsection{What's GRAPE}
-As explained in previous sections, to control our qubit and manipulate it, we need to send microwave pulses in the cavity. The problem is, what pulse do we send? How does it look? sin? cos? In what frequency? Or maybe even some arbitrary wave.
-
-Although in some cases we can calculate the wave analytically, most of the time this isn't an option, so we need to use numeric means to find the pulse. To find the desired pulse through numeric means, we can model our system on a normal(boring) computer and simulate what happens when you send a pulse, then, we can try to change the pulse(in a smart way) until we get the desired effect. So for example, let's say we want to find the wave pulse that corresponds to the NOT gate, we can start by guessing some random wave(constant zero, sin and so on), the random wave probably won't act as a NOT gate, then, we change the wave a little bit many times and on each iteration the pulse acts more and more as a NOT gate.
+Although in some cases we can calculate the pulse analytically, most of the time this isn't an option, so we need to use numeric means to find the pulse. To find the desired pulse through numeric means, we can model our system on a normal(boring) computer and simulate what happens when you send a pulse, then, we can try to change the pulse(in a smart way) until we get the desired effect. So for example, let's say we want to find the wave pulse that corresponds to the NOT gate, we can start by guessing some random wave(constant zero, sin and so on), the random wave probably won't act as a NOT gate, then, we change the wave a little bit many times and on each iteration the pulse acts more and more as a NOT gate.
 % TODO: Change the first propesed
-So what's GRAPE than? The *GR*adient *A*scent *P*ulse *E*ngineering was first proposed in [2]. When we model our system, we treat the wave as a step-wise constant function, so the wave is just an array with many variables and we want to find the best values that give the result that we want. then we set a cost function \footnote{discussed in details in the next section} that tells us how are the values of the wave to give the wanted result. This cost function is a many dimensional function(each step of the wave is a dimension of the cost function), and we can find its gradient. Using the cost function and it's gradient we can use some optimization algorithm(mainly, the L-BFGS-B method) to find the maximum of the cost function that gives us the optimal wave to send to the cavity.
+So what's GRAPE than? The \textit{\textbf{GR}adient \textbf{A}scent \textbf{P}ulse \textbf{E}ngineering} was first proposed in [2]. When we model our system, we treat the wave as a step-wise constant function, so the wave is just an array with many variables and we want to find the best values that give the result that we want. then we set a cost function \footnote{discussed in details in the next section} that tells us how are the values of the wave to give the wanted result. This cost function is a many dimensional function(each step of the wave is a dimension of the cost function), and we can find its gradient. Using the cost function and it's gradient we can use some optimization algorithm(mainly, the L-BFGS-B method) to find the maximum of the cost function that gives us the optimal wave to send to the cavity.
 
 \begin{figure}[H]
     \centering
-    \caption{Example of a step-wise constant function as an array of numbers}
     \includegraphics[width=0.3\columnwidth]{step-wise_example.png} % TODO: Change the image
+    \caption{Example of a step-wise constant function as an array of numbers}
     \label{fig:step-wise-const}
 \end{figure}
 
@@ -638,8 +649,8 @@ Now all you need is to plug \ref{eq:cost-function-b/fwd} and \ref{def:overlap} i
 Let's do a little test now to see that everything is working well. The simplest pulse you can send is the pulse that takes the qubit from being in state $\ket{0}$ to state $\ket{1}$. We discussed this situation in appendix \ref{appen:annalytic} so we know how the solution should look like. Running our GRAPE code with some random initial pulse we get
 \begin{figure}[H]
     \centering
-    \caption{First example of GRAPE from state $\ket{0}$ to state $\ket{1}$}
     \includegraphics[width=1\columnwidth]{Results/No-Constraints-single-qubit/pulses.png}
+    \caption{First example of GRAPE from state $\ket{0}$ to state $\ket{1}$}
     \label{fig:GRAPE-first-example}
 \end{figure}
 Amazing! From some random initial pulse we got sin and cos waves just as predicted in appendix \ref{appen:annalytic}.
@@ -649,11 +660,11 @@ Before we get too excited there are a couple of things weird with this pulse. Th
 Another problem that is not obvious right away we can see if we look at a graph of the level population over the duration of the pulse. We expect the graph to start at $1$ and end at $0$ for $\ket{0}$ and start at $0$ and end at $1$ for $\ket{1}$. Let's look at that graph for the initial random pulse and for the optimized pulse
 \begin{figure}[H]
     \centering
-    \caption{Population of qubit levels over pulse duration}
     \includegraphics[width=1\columnwidth]{Results/No-Constraints-single-qubit/level-population.png}
+    \caption{Population of qubit levels over pulse duration}
     \label{fig:GRAPE-first-example-level-population}
 \end{figure}  % TODO: This graph is kinda false
-Ad expected, the initial random pulse doesn't change the pulse almost at all. The optimized pulse on the other hand, WOW! What is this? It jumps between 0 and 1 too many times. Ideally, the population will change from 0 to 1(and vice-versa) smoothly only once.
+As expected, the initial random pulse doesn't change the pulse almost at all. The optimized pulse on the other hand, WOW! What is this? It jumps between 0 and 1 too many times. Ideally, the population will change from 0 to 1(and vice-versa) smoothly only once.
 
 This happens because the optimized pulse is wayyyy to strong, the amplitude of the pulse is huge! And well, as we defined the optimization, the algorithm doesn't care that the population does some weird stuff in the middle of the pulse as long as it ends at the desired state.
 
@@ -777,9 +788,9 @@ When we did all of our calculation on the qubit we didn't include one detail, it
 Before we continue to implement DRAG, let's see if the 3rd level really is that of a problem, we'll run a simulation of GRAPE just as we did before but this time with 3 levels instead of 2, and the 3rd level should start and end at 0 population. We get after running GRAPE
 \begin{figure}[H]
     \centering
-    \caption{Optimal pulses and level population with the DRAG method}
     \includegraphics[width=1\columnwidth]{Results/Before-Drag/pulses.png}
     \includegraphics[width=1\columnwidth]{Results/Before-Drag/population.png}
+    \caption{Optimal pulses and level population with the DRAG method}
     \label{fig:before-DRAG} % TODO: Replace these graphs with the actuall graphs
 \end{figure}
 Well yes, the forbidden layer did start and end at $0$ population, but in the middle the qubit really became a 3 level system with the population of the forbidden level being almost $\frac{1}{2}$! This isn't one of the first two levels, we want to treat the system as if there are only two levels and the forbidden level should be negligible. More then that, the solution is noisy and not as smooth as we want, that is since it does the state transfer in a really unconventional manner, if we gave the algorithm a penalty on the forbidden level we would get a more conventional solution(sinusoidal).
@@ -839,9 +850,9 @@ remember that $\psi_{bwd}$ was already calculated from the gradient calculation,
 Let's run now the algorithm and get some results
 \begin{figure}[H]
     \centering
-    \caption{Optimal pulses and level population with the DRAG method}
     \includegraphics[width=1\columnwidth]{Results/DRAG/Population-Low-Quality.png}
     \includegraphics[width=1\columnwidth]{Results/DRAG/pulses-Low-Quality.png}
+    \caption{Optimal pulses and level population with the DRAG method}
     \label{fig:sDRAG-results}
 \end{figure}
 Nice! state $\ket{0}$ goes directly to $1$, $\ket{1}$ goes directly to $0$ and the forbidden level is barley changed throughout the pulse(the fidelity gotten from this pulse is around $99.9\%$, so pretty good).
@@ -886,7 +897,21 @@ It's important to note that while it might be tempting to leave $n_{ph}$ at a sm
 % TODO: Need to go over the last paragraph and check it with Serge to make sure I'm not making anything up
 
 \subsection{Finding a Good Initial Guess}
-...
+Although the GRAPE algorithm is the one responsible to find to optimal control pulse, we still need to give it some initial guess and the algorithm does the rest. You might think that this isn't much of a problem since theoretically any initial guess should arrive at a desired result. The problem is that many times the algorithm gets stuck and can't find a result. This could be caused by a number of reasons, the main two are when the constraints are too strong and when the initial guess is not good enough.
+
+When the constraints are two strong, the algorithm might prefer optimizing them instead of the fidelity and what we get is a pulse that achieves horrible fidelity but within the constraints. This is really not good and the solution is simply weakening the constraints(choosing a smaller $\lambda$ for the constraint).
+
+The other, harder to solve problem is when the initial guess of the pulse is problematic. For example, if you choose the initial guess the be the most obvious initial guess you can make, constant 0, the algorithm will properly stop after one iteration changing nothing, this is because the gradient of a constant 0 pulse is actually zero, so the optimization algorithm think it's in an optimized minimum when in fact, it properly couldn't be more wrong.
+
+The other simple initial guess you might think of using is a random pulse, after all we don't know what is the desired pulse so picking a random pulse is as good as any other, plus it has the added benefit that even if one random pulse doesn't get you to a solution, the next time you run it it might get to one. The problem with a random pulse is that it is the definition of a non-smooth function, and since the initial guess is not smooth, the algorithm might find it difficult to get a smooth solution.
+
+There are two approaches we can take to get a good initial pulse, the first approach assumes nothing about the system, this is good since it is really general and can be used in any case, but might be not ideal in some cases. The second approach is when we know roughly how the solution should look like, we can use some pulse that is similar to what we expect and GRAPE will get the actual pulse from that.
+
+In the first approach, we want GRAPE to do most of the work, but not get stuck by some weird problem of the initial pulse, we want a guess that is close to 0, pretty random, but not so much that it would be hard to smooth. We can get such a pulse by doing a \textit{convolution} between a random pulse and a Gaussian window % TODO: Continue to expalian why these convolutions work and give and equation
+
+Unlike the first approach, the second approach could look really different for different examples but I'll give some general guidelines you can use the get a good initial pulse. Let's say, for example, you have a 3-level system where the third level isn't wanted(such as in the DRAG example). If you give an initial guess like the one in the first approach, the third level will still be excited by that pulse, and it might be hard for the algorithm to fix this. What you might do in this scenario, is to start with an initial guess that you know excites only the first and second levels of the system but not the third. This is easy since you  know the energy difference between the levels, and from that you know the frequency that excites each level. What you can do is some random pulse that has frequency around the first-second levels frequency difference. So if you look in the frequency space, what you see is some Gaussian distribution around the first levels frequency with some random noise on it.
+
+% TODO: Add figure of such distrobution
 
 \subsection{From States to Gates}
 % TODO: Explain how you would go from state-GRAPE to gate-GRAPE and maybe implement it?
@@ -922,8 +947,8 @@ We draw a mixer in a diagram like so,
 
 \begin{figure}[H]
     \centering
-    \caption{Ideal mixer in a diagram}
     \includegraphics[width=0.3\columnwidth]{Ideal-Mixer.png} %TODO: Change image to one with L I R markings
+    \caption{Ideal mixer in a diagram}
     \label{fig:Ideal-Mixer}
 \end{figure}
 We can change what are the outputs and what are the inputs to get different ways for the mixer to work\footnote{TODO: Explain this} % TODO: Add on this later
@@ -933,8 +958,8 @@ We can change what are the outputs and what are the inputs to get different ways
 We've seen what's a \textit{regular}(and \textit{ideal}) mixer is, but how can we use it for the desired effect? remember, we want to input a high frequency and a lower frequency and we want the output to be a wave with a frequency that is the sum of the 2 frequencies. To do so, we can consider the following diagram
 \begin{figure}[H]
     \centering
-    \caption{The IQ mixer}
     \includegraphics[width=0.5\columnwidth]{IQ-Mixer.png} %TODO: Change image to one with L I R markings
+    \caption{The IQ mixer}
     \label{fig:IQ-Mixer}
 \end{figure}
 Where the 90\degree\ hybrid in the diagram is a \textit{90\degree\  hybrid coupler}, it splits the signal into 2 signals at a 90\degree phase difference, hence the name. The square near the \textit{RF} sign simply adds the 2 waves, we also look into it in the appendix % TODO: Improve wording
@@ -964,15 +989,15 @@ If we use a spectrum analyzer and view what frequencies are in the final wave we
 
 \begin{figure}[H]
     \centering
-    \caption{Full Spectrum Without Any Corrections}
     \includegraphics[width=0.8\columnwidth]{full-spectrum-no-correction.jpg} %TODO: Need to change to image with explantion on what is going on
+    \caption{Full Spectrum Without Any Corrections}
     \label{fig:Full-spectrum-no-corrections}
 \end{figure}
 Zooming in around the LO frequency we see
 \begin{figure}[H]
     \centering
-    \caption{Spectrum Around the LO Frequency}
     \includegraphics[width=0.8\columnwidth]{Important-Spectrum-no-correction.jpg} %TODO: Need to change the image to one with marking explaining it on it(what is each spike)
+    \caption{Spectrum Around the LO Frequency}
     \label{fig:closeup-spectrum-no-corrections}
 \end{figure}
 
@@ -1315,8 +1340,8 @@ The graph starts as the variables, goes through some operations that use paramet
 % TODO: Maybe make my own image so all the images have the same theme
 \begin{figure}[H]
     \centering
-    \caption{Example of a basic computational graph}
     \includegraphics[width=0.4\columnwidth]{Example-comp-graph.png} %TODO: Change image to one with L I R markings
+    \caption{Example of a basic computational graph}
     \label{fig:example-computational-graph}
 \end{figure}
 
