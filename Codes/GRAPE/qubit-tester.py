@@ -18,11 +18,11 @@ def gaussian(size, sigma, amp, graph=False):
 
 
 # -- Constants --
-w = 1
-alpha = 0.05/1000
-qubit_levels = 3
+w = 2*np.pi*0
+alpha = 2*np.pi*0.15
 epsilon_max = 50
 sigma = 30
+qubit_levels = 2
 
 # -- Basic operators --
 q = destroy(qubit_levels)
@@ -33,12 +33,12 @@ qd2 = qd * qd
 
 # -- Hamiltonians --
 H0 = w*qd*q - (alpha/2)*qd2*q2
-Hq_I = q + qd
-Hq_Q = 1j*(q - qd)
+Hq_I = (q + qd)*0.5
+Hq_Q = 0.5*1j*(q - qd)
 
 # -- Time variables --
-T = 250
-Ns = 1000
+T = 30
+Ns = 200
 
 dt = T/Ns
 times = np.linspace(0.0, T, Ns)
@@ -64,8 +64,8 @@ conv_I = (ndi.convolve((np.random.random(Ns) - 0.5) *
 conv_Q = (ndi.convolve((np.random.random(Ns) - 0.5) *
                        2 * rand_amp_Q, gaussian_window, mode='wrap'))
 
-# QI = conv_I
-# QQ = conv_Q
+QI = conv_I
+QQ = conv_Q*0.03
 
 pulse = np.array([QI, QQ])
 
@@ -77,10 +77,53 @@ test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], 
                               max_amp=epsilon_max, lambda_band_lin=0.0, lambda_amp_lin=0, fix_amp_max=False)
 
 # -- Test Gradient --
-test_pulse.cost(pulse*2)
-test_pulse.cost_gradient(pulse*2, debug_fidelity=True)
+# test_pulse.cost(pulse*2)
+# test_pulse.cost_gradient(pulse*2, debug_fidelity=True)
 
 # -- Cost Function Optimization --
+# pulse, fidelity = test_pulse.optimize()
+
+print("Going to DRAG")
+qubit_levels = 3
+
+# -- Basic operators --
+q = destroy(qubit_levels)
+qd = q.dag()
+
+q2 = q * q
+qd2 = qd * qd
+
+# -- Hamiltonians --
+H0 = w*qd*q - (alpha/2)*qd2*q2
+Hq_I = 0.5*(q + qd)
+Hq_Q = 0.5*1j*(q - qd)
+
+# -- Initial and Final States --
+psi_initial = qt.basis(qubit_levels, 0)
+psi_target = qt.basis(qubit_levels, 1)
+
+# QI = pulse[0]
+# QQ = pulse[1]
+QI = np.sin(w*times)
+# QQ = np.cos(w*times)
+sig = 4.0
+A = np.sqrt(np.pi/2)/(sig)
+QI = np.exp((-(times-T/2)**2)/(2*(sig)**2))*A*0 + np.sin(times)
+QQ = (-0.5*np.exp((-(times-T/2)**2)/(2*(sig)**2)) *
+      A*(times-T/2)/(alpha*sig**2))*0 + np.cos(times)
+
+#   0*np.exp((-(T/2)**2)/(2*(sig)**2)))*A
+pulse = np.array([QI, QQ])*2
+
+
+test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], pulse, constraints=False, print_fidelity=True,
+                              max_amp=epsilon_max, lambda_band_lin=0.0, lambda_amp_lin=0, fix_amp_max=False, drag=True)
+
+# -- Cost Function Optimization --
+print("3-level before DRAG: ", test_pulse.run_operator(pulse, show_prob=True))
+print("3-level before DRAG: ", test_pulse.run_operator(pulse))
+test_pulse.cost(pulse*2)
+test_pulse.cost_gradient(pulse*2, debug_fidelity=True)
 # pulse, fidelity = test_pulse.optimize()
 
 print("Total time: ", time.time() - itime)
