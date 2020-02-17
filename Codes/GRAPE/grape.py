@@ -8,7 +8,7 @@ import qutip as qt
 import warnings
 import scipy.linalg
 # warnings.filterwarnings('ignore')
-a = 0.5
+a = 0.8*10
 state_2 = np.array([0, 0, 1])
 int_pen = 1*0
 
@@ -147,7 +147,7 @@ class GrapePulse:
                                          factr=1e12)
         else:
             result = spopt.fmin_l_bfgs_b(self.cost, self.initial_pulse,
-                                         self.cost_gradient, factr=1e12)
+                                         approx_grad=True, factr=1e12)
         result = (result[0].reshape(self.Nd,
                                     self.Ns), result[1])
         self.run_operator(result[0], show_prob=True)
@@ -163,7 +163,7 @@ class GrapePulse:
 
         fid = self.run_operator(pulse)
 
-        fid_total = fid - self.constraints * self.constraint(pulse)*0
+        fid_total = fid - self.constraints * self.constraint(pulse)
         return -fid_total
 
     def cost_gradient(self, in_pulse, debug_fidelity=False):
@@ -184,35 +184,51 @@ class GrapePulse:
             if k == 0:
                 psi_fwd.append(self.psi_initial)
             else:
+                # print(k, "->\n", psi_fwd[-1])
                 psi_fwd.append(U[k - 1] @ psi_fwd[-1])
-
+        psi_fwd = np.array(psi_fwd)
+        # print(psi_fwd.shape)
         # self.psi_fwd = psi_fwd
 
         # -- psi_bwd --
         # psi_bwd = np.array(
-            # [np.identity(self.dims)]*(self.Ns+1), dtype=complex)
+        # [np.identity(self.dims)]*(self.Ns+1), dtype=complex)
         # psi_bwd[-2] = U[-1]
         psi_bwd = np.array([np.identity(len(self.psi_initial))]
                            * (self.Ns+1), dtype=complex)
 
         for k in reversed(range(self.Ns)):
             psi_bwd[k] = psi_bwd[k+1]@U[k]
+        phi_bwd = np.zeros([self.Ns+1, 1, len(self.psi_target)], dtype=complex)
 
         # Multiply the U product by <psi_target| from the left
+        # for k in range(self.Ns + 1):
+        #     psi_bwd[k] = (self.psi_target.conj().T @ psi_bwd[k])
         for k in range(self.Ns + 1):
-            psi_bwd[k] = self.psi_target.conj().T @ psi_bwd[k]
+            phi_bwd[k] = (self.psi_target.conj().T @ psi_bwd[k])[0]
+        # print("bwd - >\n", psi_bwd[0])
+        # print("f_bwd - >\n", phi_bwd[0])
+        # print(k, "->\n", phi_bwd[k])
 
+        # print("fwd-0: ", psi_fwd[0])
+        # print("bwd-N: ", phi_bwd[-1])
         dc = np.ndarray(self.Ns * self.Nd, dtype=complex)
         for i, H_k in enumerate(self.drive_hamiltonians):
             for k in range(self.Ns):
-                dc[k + i*self.Ns] = psi_bwd[k, 0] @ H_k @ psi_fwd[k]
+                # print((phi_bwd[k+1] @ H_k @ psi_fwd[k+1])[0, 0].shape)
+                dc[k + i*self.Ns] = (phi_bwd[k+1] @ H_k @ psi_fwd[k+1])[0]
+
+        prod = np.identity(len(self.psi_initial))
+        for k in range(self.Ns):
+            prod = U[k] @ prod
+        c = self.psi_target.conj().T @ prod @ self.psi_initial
 
         # --- Gradient ---
         # Before constraints
-        gradient = 2 * np.real(self.c * np.conjugate(1j * self.dt * dc))
+        gradient = 2 * np.real(c * np.conjugate(1j * self.dt * dc))
         # Add constraints
         gradient -= self.constraints * \
-            self.constraint_gradient(pulse).flatten()*0
+            self.constraint_gradient(pulse).flatten()
 
         # --- Debugging Tool ---
         if debug_fidelity:
@@ -226,7 +242,7 @@ class GrapePulse:
 
             axes[1].set_title("rough estimation of gradient")
             grad = -spopt.approx_fprime(np.ndarray.flatten(
-                in_pulse), self.cost, 1e-5)
+                in_pulse), self.cost, 1e-4)
             axes[1].plot(self.times, grad[0:self.Ns])
             axes[1].plot(self.times, grad[self.Ns:])
 
@@ -235,7 +251,7 @@ class GrapePulse:
             axes[2].set_title("QQ")
             axes[2].plot(self.times, pulse[1])
             print("All cose: ", np.allclose(
-                grad[1: -1], c_fin_transpose[1:-1]))
+                grad[1: -1], c_fin_transpose[1:-1], rtol=1),)
 
         return -gradient
 
