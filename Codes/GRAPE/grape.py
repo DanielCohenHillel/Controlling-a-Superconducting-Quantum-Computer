@@ -8,7 +8,7 @@ import qutip as qt
 import warnings
 import scipy.linalg
 # warnings.filterwarnings('ignore')
-a = 0.8*10
+a = 0.4*0
 state_2 = np.array([0, 0, 1])
 int_pen = 1*0
 
@@ -147,7 +147,7 @@ class GrapePulse:
                                          factr=1e12)
         else:
             result = spopt.fmin_l_bfgs_b(self.cost, self.initial_pulse,
-                                         approx_grad=True, factr=1e12)
+                                         self.cost_gradient, factr=1e9)
         result = (result[0].reshape(self.Nd,
                                     self.Ns), result[1])
         self.run_operator(result[0], show_prob=True)
@@ -162,7 +162,7 @@ class GrapePulse:
         pulse = in_pulse.reshape(self.Nd, self.Ns)
 
         fid = self.run_operator(pulse)
-
+        # print("===> ", self.constraints * self.constraint(pulse))
         fid_total = fid - self.constraints * self.constraint(pulse)
         return -fid_total
 
@@ -242,7 +242,7 @@ class GrapePulse:
 
             axes[1].set_title("rough estimation of gradient")
             grad = -spopt.approx_fprime(np.ndarray.flatten(
-                in_pulse), self.cost, 1e-4)
+                in_pulse), self.cost, 1e-9)
             axes[1].plot(self.times, grad[0:self.Ns])
             axes[1].plot(self.times, grad[self.Ns:])
 
@@ -292,6 +292,7 @@ class GrapePulse:
 
         # --- Total ---
         constraint_total += amp_const + band_const + int_const*int_pen
+        # print(constraint_total)
         return constraint_total.flatten()
 
     def constraint_gradient(self, pulse):
@@ -368,6 +369,10 @@ class GrapePulse:
         prod = np.identity(self.dims)
         U = self.eigy_expm((1j * self.dt) * self.H(pulse))
         self.U = U
+        if show_bloch:
+            B = qt.Bloch()
+            B.add_states(qt.Qobj(self.psi_initial))
+            B.add_states(qt.Qobj(self.psi_target))
 
         if show_prob:
             Ui = self.eigy_expm((1j * self.dt) *
@@ -400,8 +405,13 @@ class GrapePulse:
         else:
             for k in range(self.Ns):
                 prod = U[k] @ prod
+                if show_bloch:
+                    print((prod @ self.psi_initial).shape)
+                    B.add_points(prod @ self.psi_initial)
+                    time.sleep(0.1)
             psi_final = prod @ self.psi_initial
-
+        if show_bloch:
+            B.show()
         if calc_fidelity:
             c = (self.psi_target.conj().T @ psi_final)[0, 0]
             self.c = c
