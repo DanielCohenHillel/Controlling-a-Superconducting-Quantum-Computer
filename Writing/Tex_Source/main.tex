@@ -217,15 +217,19 @@ Quantum computation is a cool idea and all, but it becomes much more interesting
 
 One of the most famous algorithms in quantum computing is \textit{Shor's algorithm}. Shor's algorithm is a quantum algorithm to factor large numbers, in classical computing the best way to factor a number is to try all the numbers smaller then it and check if they devise the number. This is a really slow way to do it and basically impossible for computers to do(it might take thousands of years to factor one number on a classical computer). For this reason, almost everything is encrypted in a way that to decrypt information you're not supposed to see, you need to factor a really big number\footnote{This is called RSA encryption}. With classical computers this is a nearly impossible problem that could take thousands of years, but quantum computers can solve it in seconds with Shor's algorithm. This is a great example of the power in quantum computing.
 
+Instead of just talking about algorithms without really seeing how they're done, lets look at an example of a quantum algorithm.
+
 \subsection{Superconducting Quantum Computers}  % TODO: Maybe put this under the "Controlling a superconducting quantum computer" chapter?
-The physical implementation of the qubit itself isn't to subject of this project but we can look a bit on how you would implement such a thing. A problem we face when making a quantum computer is would physical phenomena would actually be the qubit. For classical computer we already have this figured out for years, the bit is the voltage on a wire, 1 is one there is voltage on the wire and 0 is if there's none, simple. For a quantum computer this is much more complicated, there are many quantum phenomena we can use as our qubit, such as the energy level of an atom, the spin of an electron, the polarization of photons and so on. This project is about a \textit{superconducting} quantum computer, with superconducting  qubits.
+The physical implementation of the qubit itself isn't to subject of this project but we still take a look for a bit on how would you implement such a thing. A problem we have to face when making a quantum computer is what physical phenomena would be the qubit, we need some sort of two level system that we can easily measure and manipulate, while also staying coherent\footnote{We discuess about quantum coherence and what it is in section \ref{sec:coherence}, for now you can think of it as a fancy way of saying that the qubit still holds information without be corrupted. This is the main problem facing quantum computing right now} and usable. For classical computers we already have this figured out for years, a bit is a voltage on a wire, 1 is one there is voltage on the wire and 0 if there's none, simple. For a quantum computer this is much more complicated, there are many quantum phenomena we can use as our qubit, such as the energy level of an atom, the spin of an electron, the polarization of photons and so on. It is not so abvious what should be the physical realisation of the qubit. This project is about a \textit{superconducting} quantum computer, with superconducting  qubits.
 
 Superconducting qubits are microwave circuits in which the cooper-pair condensate effectively behaves as a one-dimensional quantized particle. By inserting Josephson junctions, the circuit can be made nonlinear, allowing us to isolate the qubit from higher-energy levels and treat it as a two  level system(instead of the many level system that it really is).
 % TODO: This need to be built from the ground up and can't be all by the way-y. Need to ask Serge and read about superconductors a bit, look into BCS theory, Need to explain much on superconductors and cooper pairs
+Since superconductors are way out of the scope of this project, we can still talk about some of their benefits. The main benefit of superconducting qubits is that they are realized through electrical connections, instead of needing to do some measurement on an atom or photon, you can simply(well, not that simply) connect them to a circuit. More then that, they interact with the electromagnetic field in a very predictable way and we can more or less control them pretty easily. And of course, over the years, thanks for classical computing, methods to create really tiny circuits in very large scales are perfected, just think of how many transistors are in the computer you are using the view this file.
+% TODO: This last paragraph needs to be changes and maybe removed completely
 
 
 \newpage
-\section{Quantum Optics}
+\section{Quantum Optics} \label{chap:quantum-optics}
 In this chapter we'll introduce concepts in \textit{Quantum Optics}. It's important to have at least a little understanding of quantum optics before reading the project. The implementation of quantum computers that we discuss in this project is one where the qubit is some sort of two level system(like an atom with two levels) interacting with a cavity. The cavity is some box made out of a conducting material. In the cavity the quantization of light could occur and we'll learn more about this phenomena in the next sections.
 
 This won't be an in depth review of quantum optics and wouldn't even scratch the surface of the subject. If you want a much better introduction the the subject I highly recommend "Introductory Quantum Optics" by Christopher C. Gerry and Peter L. Knight. This chapter will only touch the subjects related and used by the project.
@@ -288,7 +292,7 @@ Now because we know that $v_{ph} = \frac{1}{\sqrt{\mu_0\epsilon_0}}$ and that th
         \nabla^2 \textbf{B} = \frac{1}{c_0^2}\frac{\partial^2 \textbf{B}}{\partial t^2}
     \end{split}
 \end{equation}
-% TODO: Check these equations with serge
+
 These equation are called \textit{the homogeneous electromagnetic wave equations}.
 We'll pick a polarization arbitrarily to be in the x direction(that way we get only the component of the electric field and the y component of the magnetic field, $E_x$ and $B_y$) so now we get,
 \begin{equation} \label{eq:Homo_electro_wave_pol}
@@ -342,7 +346,7 @@ And we can write the Hamiltonian as,
 \end{equation}
 We can ignore the zero-point energy $\frac{\hbar\omega_c}{2}$ if we define it as the zero energy point.
 
-We'll now do a big jump to the Jaynes-Cummings model, usally it comes much later when studying quantum optics but since this is only a small chapter and the Jayness-Cumming model is the model we're going to use to describe the system, we'll look at it now.
+We'll now do a big jump to the Jaynes-Cummings model, usually it comes much later when studying quantum optics but since this is only a small chapter and the Jaynes-Cumming model is the model we're going to use to describe the system, we'll look at it now.
 \subsection{The Jaynes–Cummings Model}
 Our goal is to mathematically model the Hamiltonian of a system of a two-level atom interacting with a single quantized mode of an optical cavity's electromagnetic field. % TODO: Add details about the original paper by Edwin Jaynes and Fred Cummings
 \par
@@ -467,6 +471,7 @@ Finally, we can write the full JC Hamiltonian
 
 \subsubsection{Effective Hamiltonian at the Disspersive Limit}
 ...
+
 \subsubsection{Interaction with the Classical Field} \label{sec:interaction-with_classical-field}
 As you might have noticed, we are classical creatures, I'm (unfortunately) not in a superposition of being here and on the moon at the same time :(. As classical creatures, if we want to interact with the quantum world we need to do so with in classical means with a classical interface to the quantum world. Back to the Jaynes-Cummings model, what happens when we introduce a classical electromagnetic field(such as the drives of the system, which are the main subject of this project)
 
@@ -474,6 +479,45 @@ As you might have noticed, we are classical creatures, I'm (unfortunately) not i
 ...
 \subsection{Fock States(Number States)}
 ...
+\subsection{Visualizing Quantum States}
+As you'll soon find out in the optimal control chapter, we're going to develop a system that is some sort of a \textit{black box}. We can't really control directly how it works, we can only make indirect changes to try to get everything to work\footnote{This is the nature of numerical optimization problems, in the next chapter you'll see much more why we can't control the system directly}.
+
+This is why we want to get as much insight about the system as we can, and understand that insight in a way that allows us to create intelligent changes to the system according to the data we gather. Also it's nice to have pretty graphs to understand what's going on and if everything works. So in this section we're going to look at some ways you can visualize a quantum system. There are many more ways to visualize quantum information then I show here, these are just the simplest ones that we're going to use.
+
+\subsubsection{Population Graphs}
+The simplest way we can visualize the quantum system is using \textit{population graphs}, there's not much to say about them, you plot the chance that the quantum system will be at each of it's level over time. Although they are really simple, population graphs are a really powerful, simple tool you can use to visualize the system, they give you almost all of the information about the system in an intuitive way.
+% TODO: either remove this sub-subsection entirely or add much more to it and maybe add a graph
+
+\subsubsection{The Bloch Sphere}
+Turns out, you can represent any qubit in the form\footnote{TODO: Give a brief explanation}
+\[
+    \ket{\psi} = \cos{\frac{\theta}{2}}\ket{0} + e^{i \phi} \sin{\frac{\theta}{2}}\ket{1}
+\]
+well, this equation represents a complex sphere with polar coordinate $\theta$ and azimuthal coordinate $\phi$. Since this is the case, it's very useful to visualize a qubit state as some point on a sphere, the \textit{Bloch Sphere}. Using the Bloch sphere is very intuitive and commonly used, a state might look something like
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\columnwidth]{Bloch.png}
+    \caption{Bloch sphere representation of a qubit}
+    \label{fig:Bloch-Sphere}
+\end{figure}
+% The Bloch shpere also gives a nice intuition wher the \textit{pauli matrices}, $\sigma_x$, $\sigma_y$ or $\sigma_z$ on a state corresponds to rotating the qubit on one of the axis
+
+\subsubsection{Wigner Function}
+The \textit{Wigner Function} is yet another powerful visualization tool of a quantum system. The Wigner function is the \textit{distribution} of the \textit{phase space} of a quantum \textit{density operator}. In a classical view, thinking of the phase space as a distribution might seem weird at first, but for quantum system, where there is a fundamental uncertainty in the position and momentum, a phase space only makes sense as a distribution.
+
+The Wigner function of a particle with wave function $\psi(x)$, is defined as 
+\[
+    W(x, p) \def \frac{1}{\pi \hbar} \int_{-\infty}^\infty \psi^*(x + y) \psi(x - y) e^{\frac{2ipy}{\hbar}} dy
+\]
+An interesting example to use of the Wigner function is looking at the Wigner function of a Fock state. Since the Fock state represents a coherent distribution of states on a harmonic oscillator, we can imagine how for each number of the state the phase space distribution will be high on the eigenvalues of all the eigenvalues of the harmonic oscillator. Since the harmonic oscillator can be written in the form $a x^2 + b p^2$ so the Wigner image of the $\ket{N}$ Fock state will look like $N$ circles or ellipsoids around center of the phase space. This is indeed what happens, here's an example of the $\ket{4}$ state
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\columnwidth]{Wigner.png}
+    \caption{Wigner distribution of the $\ket{4}$ Fock state}
+    \label{fig:Fock-State-Wigner}
+\end{figure}
+
+% TODO: Edit this section abit
 
 
 % \newpage
@@ -649,8 +693,8 @@ Now all you need is to plug \ref{eq:cost-function-b/fwd} and \ref{def:overlap} i
 Let's do a little test now to see that everything is working well. The simplest pulse you can send is the pulse that takes the qubit from being in state $\ket{0}$ to state $\ket{1}$. We discussed this situation in appendix \ref{appen:annalytic} so we know how the solution should look like. Running our GRAPE code with some random initial pulse we get
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\columnwidth]{Results/No-Constraints-single-qubit/pulses.png}
-    \caption{First example of GRAPE from state $\ket{0}$ to state $\ket{1}$}
+    \includegraphics[width=1\columnwidth]{Results/No-Constraints-single-qubit/pulses-pretty2.png}
+    \caption{First example of GRAPE from state $\ket{0}$ to state $\ket{1}$. This is almost perfect sin/cos waves as predicted analytically in appendix \ref{appen:annalytic}, but no exactly the same and not smooth for some reason}
     \label{fig:GRAPE-first-example}
 \end{figure}
 Amazing! From some random initial pulse we got sin and cos waves just as predicted in appendix \ref{appen:annalytic}.
@@ -660,8 +704,8 @@ Before we get too excited there are a couple of things weird with this pulse. Th
 Another problem that is not obvious right away we can see if we look at a graph of the level population over the duration of the pulse. We expect the graph to start at $1$ and end at $0$ for $\ket{0}$ and start at $0$ and end at $1$ for $\ket{1}$. Let's look at that graph for the initial random pulse and for the optimized pulse
 \begin{figure}[H]
     \centering
-    \includegraphics[width=1\columnwidth]{Results/No-Constraints-single-qubit/level-population.png}
-    \caption{Population of qubit levels over pulse duration}
+    \includegraphics[width=1\columnwidth]{Results/No-Constraints-single-qubit/level-population-pretty2.png}
+    \caption{Population of qubit levels over pulse duration. Before the optimization, the state of the qubit(population of ground and excited states) almost did not change at all. After the optimization, the qubit goes from state $\ket{0}$ to $\ket{1}$ to $\ket{0}$ to $\ket{1}$, doing some unnecessary back and forth between the states}
     \label{fig:GRAPE-first-example-level-population}
 \end{figure}  % TODO: This graph is kinda false
 As expected, the initial random pulse doesn't change the pulse almost at all. The optimized pulse on the other hand, WOW! What is this? It jumps between 0 and 1 too many times. Ideally, the population will change from 0 to 1(and vice-versa) smoothly only once.
@@ -751,9 +795,37 @@ Now, before we continue to the non linear limit, we'll add another small constra
 \]
 This solves the problem we were trying to solve we were having with the slope at the boundaries, since the gradient is 0 at the edges and does not depend on it's neighbors. We can move on to the non-linear limitation now.
 
-As we mentioned earlier, the goal of the non-linear limitation is to get a specific wanted maximum slope instead of making the slope as small as possible, this is, like in the 
+As we mentioned earlier, the goal of the non-linear limitation is when we have a specific bandwidth to be well below off, the could be achieved thanks to the fact that exponents grow really fast
+\[
+    Add\ equation\ here
+\]
 % TODO: Add here but more importantly change how is the goal of the non-linear limitation explained.
 
+Now that we have both amplitude constraint and bandwidth constraint we can use them to get a nice, smooth solution, that any wave generator would be happy to produce
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\columnwidth]{Results/qubit-band-amp-const/pulses.png}
+    \caption{Control pulses before and after GRAPE optimization with amplitude and bandwidth constraints}
+    \label{fig:band-amp-const-qubit}
+\end{figure}
+This looks nice and what we expected it to look like.
+
+The more important thing is that if we look at the population of the levels over time, it does exactly what we want, go from state $\ket{0}$ to state $\ket{1}$ without going back and forth
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\columnwidth]{Results/qubit-band-amp-const/level-population.png}
+    \caption{Population of qubit levels over pulse duration. Before the optimization, the state of the qubit(population of ground and excited states) almost did not change at all. After the optimization, the qubit goes from state $\ket{0}$ to $\ket{1}$}
+    \label{fig:band-amp-const-level-population}
+\end{figure}
+
+Another interesting metric of the success of this pulse is the path of the qubit on the Bloch sphere over time(see the last section in chapter \ref{chap:quantum-optics}). Plotting the populations on the Bloch sphere we get 
+\begin{figure}[H]
+    \centering % TODO: Replace with actuall bloch sphere
+    \includegraphics[width=1\columnwidth]{Results/qubit-band-amp-const/level-population.png}
+    \caption{Path of the qubit along the Bloch sphere. The qubit goes from state $\ket{0}$ to state $\ket{1}$, preforming one loop on the sphere, the arrows represent the initial state and the target state, and the points represent the path of the state of the qubit}
+    \label{fig:band-amp-const-blcoh}
+\end{figure}
+As you can see, the path of the qubit isn't a straight line, but some loop, completing a full rotation around the $\hat{z}$ axis. This is explained by the fact that the base Hamiltonian of the qubit is $\omega \hat{\sigma}_3$, where $\hat{\sigma}_3$ is the third Pauli matrix, this matrix corresponds to rotation of the Bloch sphere around the $\hat{z}$ axis(it's common to define $\hat{Z} = \hat{\sigma}_3$ because of this property). This is why we can think of the entire Bloch sphere as always rotating with frequency $\omega_0$ around the $\hat{z}$ axis, this is why a "straight" path is actually one that does one loop around the $\hat{z}$ axis.
 % \subsection{Adding the Cavity}
 % \subsubsection{From Pure State to Density Matrix}
 % When we want to describe a qubit-cavity system we need to go from pure states to density matrices(explained in more details in a moment). Unluckily for us, this means changing how we calculate the fidelity and it's gradients, so we'll need to change some of the equations we used in the previous section to get GRAPE to work in such a system.
@@ -780,6 +852,17 @@ Luckily for us, the calculation of the gradient is also pretty simple, the gradi
 The calculation of the gradient % TODO: Need to continue thhis line. Don;t rememeber what I originally wanted
 
 The pulse duration constraint works nicely to complete the other constraints. Without this constraint, the pulse will "try" to use all it's time to get the result we desire, and when running the algorithm without the constraint we can get problems if the duration we gave to the pulse is too long or too short. With this constraint on, we can simply give the algorithm a duration that we know for sure is more then the minimum required time and the algorithm will simply use the minimum time it need and no more. On the other hand, if we didn't have the amplitude(and bandwidth) constraints, the algorithm might find that it's best to just give a huge pulse for a tiny amount of time, but that's not physically possible as we discussed. This is why we can think of the constraints working together to "box in" the pulse into an ideal size.
+
+If we run GRAPE now, with all the constraints together, and look at the population of all the level over the duration of the pulse, we get
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\columnwidth]{Results/duration-constraint/level-population.png}
+    \caption{Level population of each state as a function of time over the duration of the pulse.}
+    \label{fig:dur-penelty}
+\end{figure}
+
+As expected, we get exactly what we want, the pulse uses the least amount of time that it needs and then stop. This way, if we pick a long duration for the pulse, instead of the pulse trying to fill the entire time at a very low amplitude, or do several of loops before arriving at the target, the qubit simply takes exactly the amount of time that it needs to get to the desired state under all of the constraints and then stops.
+
 \subsection{Implementing Qubit Operations with GRAPE}
 
 \subsubsection{DRAG - Imperfect Qubits}
@@ -911,14 +994,20 @@ In the first approach, we want GRAPE to do most of the work, but not get stuck b
 
 Unlike the first approach, the second approach could look really different for different examples but I'll give some general guidelines you can use the get a good initial pulse. Let's say, for example, you have a 3-level system where the third level isn't wanted(such as in the DRAG example). If you give an initial guess like the one in the first approach, the third level will still be excited by that pulse, and it might be hard for the algorithm to fix this. What you might do in this scenario, is to start with an initial guess that you know excites only the first and second levels of the system but not the third. This is easy since you  know the energy difference between the levels, and from that you know the frequency that excites each level. What you can do is some random pulse that has frequency around the first-second levels frequency difference. So if you look in the frequency space, what you see is some Gaussian distribution around the first levels frequency with some random noise on it.
 
-% TODO: Add figure of such distrobution
-
-\subsection{From States to Gates}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\columnwidth]{exaple-of-engineered-guess-edited.png}
+    \caption{Example of how you might engineer an initial pulse for a system with known characteristics. Normally you would also add some random noise on top of the pulse}
+    \label{fig:example-engineered-initial-guess}
+\end{figure}
+\subsection{From States to Gates}\label{sec:gate-GRAPE}
 % TODO: Explain how you would go from state-GRAPE to gate-GRAPE and maybe implement it?
 % \textit{*Maybe add here how to create a gate-GRAPE from the state-GRAPE*}
 Until now we've discussed how to find pulses that take our system from one state to another. Which raises an important question, \textit{\textbf{why}?}. Sure, creating Fock states in cavity is nice and all, but I want to run quantum algorithm on my quantum computer not make pretty pictures.
 
-Here's the thing, turns out, you can change the algorithm a little bit and get a GRAPE algorithm that gives you back the optimal pulses that realizes a desired \textit{quantum gate}, instead of just taking you from one state to another. Let's take a look on how this is done.
+Here's the thing, turns out, you can change the algorithm just a little bit and get a GRAPE algorithm that gives you back the optimal pulses that realizes a desired \textit{quantum gate}, instead of just taking you from one state to another. 
+
+To make such gate GRAPE, instead of optimizing for one state transformation, you optimize for of initial states. These initial states should constitute a basis for the entire state space. This way, since quantum operations must be unitary, a unique transformation on the basis of the state space is a unique transformation on the entire system. We're no going to prove this I would not implement this or go any further, this is just a brief overview to get the general idea but I don't want to make this project too long.
 
 
 \newpage
@@ -1078,7 +1167,15 @@ This time our cost function is the frequency at $\omega_{LO} - \omega_{IQ}$, we 
 
 \newpage
 \section{Future Work and Conclusions}
-...
+We conclude this project with the knowledge and tools(both mental and literal python program utilities) to create and control quantum systems, from understanding them theoretically to connecting and calibrating the devices that actually send the control pulses, to creating the control pulses to create any quantum state we can think of and any operation we want.
+
+As with anything in life, this project must to come to an end at some point, each subject we discuss opens a rabbit hole we'll never see the end of. Everything could be expanded and studied but we can't keep adding and adding to the project.
+
+If I we're the continue this project, properly the first thing I would do is explain exactly how the gate GRAPE from section \ref{sec:gate-GRAPE} works, and implement it in code. The gate GRAPE is the missing piece needed to actually creating quantum circuits, and it opens many possibilities for quantum computation and information.
+
+Another, pretty obvious, continuation to this project would be, you know, actually implementing it, physically, in an experiment. This project is (almost) entirely theoretical and numerical, for all you know I was lying to you the hole time. It would be nice to actually check GRAPE on quantum system, but since Serge's lab is not yet fully built and there is no fridge to cool the quantum system system to to be able to create stable quantum states, it is impossible to do the experiments needed. More then that, it would make the project much longer then it is right now, and we must finish it at some point.
+
+% TODO: Refine this and maybe add a thanking paragraph
 
 
 \appendix
@@ -1321,7 +1418,46 @@ This time our cost function is the frequency at $\omega_{LO} - \omega_{IQ}$, we 
 
 \newpage
 \section{Analytical Calculations of Optimal Pulses} \label{appen:annalytic}
-Throughout chapter \ref{chap:optimal} we embarked on journey finding optimal pulses with numerical methods, but it's important to note that in some specific cases we can calculate the solution analytically. This has more uses than for mathematical beauty, we can use these cases as test cases to see that the GRAPE algorithm actually works and gives the same answer as we got in the analytical calculation.
+Throughout chapter \ref{chap:optimal} we embarked on journey finding optimal pulses with numerical methods, but it's important to note that in some specific cases we can calculate the solution analytically. This has more uses than for mathematical beauty, we can use these cases as test cases to see that the GRAPE algorithm actually works and gives the same answer as we got in the analytical calculation. Lets start with the simplest operation, the single qubit operation.
+\subsection{Single Qubit Operation}
+We're going to start with everyone's favourite, Shr\"{o}dinger's equation\footnote{Planck's reduced constant is set to $1$, $\hbar = 1$}
+\[
+    \dot{\psi} = -i H \psi
+\]
+A state of a qubit is represented by it's probabilities to be in the ground and excited states
+\[
+    \psi = C_g(t) \ket{g} + C_e(t) \ket{e}
+\]
+where $C_g$ and $C_e$ are the amplitudes of the ground and excited states.
+
+Shr\"{o}dinger's equation now becomes
+\begin{equation} \label{eq:shrod-psi-explit}
+     \dot{C_g}(t) \ket{g} + \dot{C_e}(t) \ket{e} = -i H_{atom} (C_g(t) \ket{g} + C_e(t) \ket{e})
+\end{equation}
+
+% TODO: Add acutall equation numbers from the interaction with the classical field
+The Hamiltonian of an atom interacting with a classical field(ignoring the cavity) was derived in \ref{eq:atom-ham-class-field}. We can write it as
+\[
+    H_{atom} = \omega_0 \hat{a}^\dag \hat{a} + \Omega(t)\hat{\sigma}_1= \omega_0\ket{e}\bra{e} + \Omega(t)(\ket{g}\bra{e} + \ket{e}\bra{g})
+\]
+Where $\Omega(t)$ is the electromagnetic field amplitude.
+
+Replacing $H_{atom}$ in equation (\ref{eq:shrod-psi-explit}) with the expression we have for it the equation becomes
+\[
+    \dot{C_g}(t) \ket{g} + \dot{C_e}(t) \ket{e} = -i (\ \omega_0\ket{e}\bra{e} + \Omega(t)(\ket{g}\bra{e} + \ket{e}\bra{g})\ )\cdot (C_g(t) \ket{g} + C_e(t) \ket{e})
+\]
+Some algebra magic later(remembering that $\{\ket{g},\ket{e}\}$ constitutes an orthonormal basis, so $\braket{e}{e} = 1$, $\braket{g}{g} = 1$, $\braket{g}{e} = 0$, and $\braket{e}{g} = 0$)
+\[
+    \dot{C_g}(t) \ket{g} + \dot{C_e}(t) \ket{e} = -i \omega_0 C_e \ket{e} - i\Omega(t)(C_e\ket{g} + C_g \ket{e})
+\]
+We can left multiply this equation once with $\bra{g}$ and once with $\bra{e}$, getting the 2D system of differential equations
+\begin{align*}
+    \bra{g} \quad &\rightarrow \quad \dot{C_g}(t) = -i \Omega(t)C_e(t) \\
+    \bra{e} \quad &\rightarrow \quad \dot{C_e}(t) = -i \omega_0 C_e(t) - i\Omega(t) C_g(t)
+\end{align*} % TODO: Finish solution
+
+
+
 
 \newpage
 \section{Another Method: Computational Graphs}
@@ -1446,7 +1582,8 @@ And the derivatives are calculated rather easily as
     \frac{\partial L_2^k}{\partial L_1^k} &= 1 \\
     \frac{\partial L_3^k}{\partial L_2^k} &= e^{L_2^k} \\
     \frac{\partial L_4}{\partial L_3^k} &= \prod_{i \ne k} L_3^i \\
-    \frac{\partial C}{\partial L_4} &= \overline{\ket{\psi_{target}}} \otimes \ket{\psi_{initial}}\ (Need\ correcting)
+    \downarrow \\
+    \frac{\partial C}{\partial \epsilon_k} &= \bra{\psi_{target}}  \frac{\partial L_4}{\partial L_3^k}  \frac{\partial L_3^k}{\partial L_2^k} \frac{\partial L_2^k}{\partial L_1^k}  \frac{\partial L_1^k}{\partial \epsilon_k} \ket{\psi_{init}}
 \end{align*}
 It's important to note that $\frac{\partial L_1^i}{\partial \epsilon_j} = 0$ for $i \ne j$ so we didn't refer to those derivative(This is true for the derivative between any two layers).
 

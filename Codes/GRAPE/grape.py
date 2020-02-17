@@ -290,19 +290,20 @@ class GrapePulse:
             int_const += np.average(pulse[i])**2
         int_const /= self.Nd
 
-        dur_const = 0
-        U = self.eigy_expm((1j * self.dt) * self.H(pulse))
+        # dur_const = 0
+        # U = self.eigy_expm((1j * self.dt) * self.H(pulse))
 
-        prod = np.identity(2)
-        for k in range(self.Ns):
-            prod = U[k] @ prod
-            psi_k = prod @ self.psi_initial
+        # prod = np.identity(2)
+        # for k in range(self.Ns):
+        #     prod = U[k] @ prod
+        #     psi_k = prod @ self.psi_initial
 
-            c = (self.psi_target.conj().T @ psi_k)
-            # print(c)
-            dur_const += (1-np.abs(c)**2)
+        #     c = (self.psi_target.conj().T @ psi_k)
+        #     # print(c)
+        #     dur_const += (1-np.abs(c)**2)
         # --- Total ---
-        constraint_total += amp_const + band_const + int_const*int_pen + dur_const*0.09
+        constraint_total += amp_const + band_const + \
+            int_const*int_pen  # + dur_const*0.09
         # print(constraint_total)
         return constraint_total.flatten()
 
