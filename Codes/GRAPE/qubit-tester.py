@@ -27,7 +27,7 @@ def gauss(sig, amp, x, x0):
 
 
 # -- Constants --
-w = 2*np.pi*1
+w = 2*np.pi*0.3
 alpha = 2*np.pi*0.15*4
 epsilon_max = 50
 sigma = 30
@@ -42,12 +42,12 @@ qd2 = qd * qd
 
 # -- Hamiltonians --
 H0 = w*qd*q - (alpha/2)*qd2*q2
-Hq_I = (q + qd)*0.5
-Hq_Q = -0.5*1j*(q - qd)
+Hq_I = (q + qd)
+Hq_Q = 1j*(q - qd)
 
 # -- Time variables --
 T = 3  # 1/alpha
-Ns = 1000
+Ns = 100
 
 dt = T/Ns
 times = np.linspace(0.0, T, Ns)
@@ -59,8 +59,12 @@ psi_target = qt.basis(qubit_levels, 1)
 
 # -- Initial Pulses --
 # -- sin\cos Solution Pulses --
-QI = np.sin(w*times)*(np.pi/(2*T))
-QQ = np.cos(w*times)*(np.pi/(2*T))
+QI = np.sin(w*times)*(np.pi/(2*(T*0.3)))
+QQ = np.cos(w*times)*(np.pi/(2*(T*0.3)))
+for i, t in enumerate(times):
+    if t > T*0.3:
+        QI[i] = 0
+        QQ[i] = 0
 
 # -- Random Initial Pulses --
 gaussian_window = gaussian(int(Ns/10), Ns/50, 1)
@@ -83,7 +87,7 @@ itime = time.time()
 # -- Using GrapePulse class --
 # Create the GrapePulse object :)
 test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], pulse, constraints=True, print_fidelity=True,
-                              max_amp=epsilon_max, lambda_band_lin=0.002, lambda_amp_lin=0, fix_amp_max=False)
+                              max_amp=epsilon_max, lambda_band_lin=0.015, lambda_amp_lin=0.0, fix_amp_max=False)
 
 # -- Test Gradient --
 # test_pulse.cost(pulse*2)
@@ -91,7 +95,7 @@ test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], 
 
 # -- Cost Function Optimization --
 pulse, fidelity = test_pulse.optimize()
-test_pulse.run_operator(pulse, show_bloch=True)
+# test_pulse.run_operator(pulse, show_prob=True)
 
 print("Going to DRAG")
 # qubit_levels = 3

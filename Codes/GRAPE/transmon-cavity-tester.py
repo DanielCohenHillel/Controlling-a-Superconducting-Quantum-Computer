@@ -6,6 +6,8 @@ import time
 import scipy.ndimage as ndi
 import scipy.signal
 
+plt.style.use("fivethirtyeight")
+
 
 def smooth(y, box_pts):
     box = np.ones(int(box_pts))/int(box_pts)
@@ -15,7 +17,7 @@ def smooth(y, box_pts):
 
 # Time variables
 T = 10  # Total time of simulation
-Ns = 5000  # Number of time steps
+Ns = 500  # Number of time steps
 dt = T/Ns
 times = np.linspace(0.0, T, Ns)
 
@@ -76,17 +78,17 @@ pulse = pulse.flatten()
 itime = time.time()
 # Create the GrapePulse object :)
 test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, drive_hamiltonians, pulse, print_fidelity=True,
-                              max_amp=epsilon_max, lambda_band_lin=0.5, lambda_amp_lin=0.0)
+                              max_amp=epsilon_max, lambda_band_lin=0.0, lambda_amp_lin=0.0, fix_amp_max=False)
 # optimize with grape
 pulse, fidelity = test_pulse.optimize()
 print(np.abs(fidelity))
-while np.abs(fidelity) < 0.99:
-    print("Bad Fidelity, Retrying")
-    r = np.random.random(Ns*len(drive_hamiltonians))
-    # r = scipy.signal.savgol_filter(r - 0.5, int((Ns/20) + 1-(Ns/20)%2), 3)
-    r = r-0.5  # smooth(r-0.5, Ns/10)
-    test_pulse.initial_pulse = pulse.flatten() + r*(2*np.max(pulse)*0.8)
-    pulse, fidelity = test_pulse.optimize()
+# while np.abs(fidelity) < 0.99:
+#     print("Bad Fidelity, Retrying")
+#     r = np.random.random(Ns*len(drive_hamiltonians))
+#     # r = scipy.signal.savgol_filter(r - 0.5, int((Ns/20) + 1-(Ns/20)%2), 3)
+#     r = r-0.5  # smooth(r-0.5, Ns/10)
+#     test_pulse.initial_pulse = pulse.flatten() + r*(2*np.max(pulse)*0.8)
+#     pulse, fidelity = test_pulse.optimize()
 print("Total time: ", time.time() - itime)
 
 # Some graphs
