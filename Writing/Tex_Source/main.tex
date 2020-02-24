@@ -147,7 +147,10 @@
    The project starts with an introduction to quantum computing. This is the basic of quantum computing and is only meant for readers who have no knowledge of quantum computing. Concepts such as the qubit and operations are introduced there.\newline\newline
    In the section chapter we define the system and characterize it. We use quantum optics and the Jaynes-Cumming model to characterize the system. This is where the bulk of the pure physics is done.\newline\newline
    The third chapter is the main interest of this project, quantum optimal control and the GRAPE algorithm. In this chapter we show how can you use the system characterization we made in chapter 2 to find the pulses you need to send to control the quantum computer as you want.\newline\newline
-   The fourth and last chapter talks about the physical implementation of the transmission of the pulses we found in the previous chapter. We show how the entire system is connected, from the AWG\footnote{Arbitrary Waveform Generator, read the chapter to learn more} to the actual qubits. We discuss the challenges of creating the pulses and how to solve these problems.
+   The fourth and last chapter talks about the physical implementation of the transmission of the pulses we found in the previous chapter. We show how the entire system is connected, from the AWG\footnote{Arbitrary Waveform Generator, read the chapter to learn more} to the actual qubits. We discuss the challenges of creating the pulses and how to solve these problems.\newline\newline
+   All the codes used in and created for this project, results, and references are available at\newline
+   \texttt{https://github.com/DanielCohenHillel/Controlling-a-Superconducting-Quantum-Computer}
+   
 \end{abstract}
 \newpage
 \section{Introduction}
@@ -234,6 +237,26 @@ In this chapter we'll introduce concepts in \textit{Quantum Optics}. It's import
 
 This won't be an in depth review of quantum optics and wouldn't even scratch the surface of the subject. If you want a much better introduction the the subject I highly recommend "Introductory Quantum Optics" by Christopher C. Gerry and Peter L. Knight. This chapter will only touch the subjects related and used by the project.
 
+\subsection{Dirac's Method for Canonical Quantization}
+Before we dive into anything new, we'll start by going over the method to quantize any oscillating phenomena introduced by Pauli Dirac in his 1925 PhD dissertation.
+
+Any system of which we have a classical description can be quantized following a process known as canonical quantization. A classical system can be described by pairs of \textit{canonically conjugate variables}, $(q_j, p_j)$ satisfying the Hamilton equations
+\begin{align*}
+    &\dot{q_j} =\quad \frac{\partial H}{\partial p_j} \\
+    &\dot{p_j} = -\frac{\partial H}{\partial q_j}
+\end{align*}
+where $q_j$ is called the \textit{canonical coordinate} and $p_j$ is called the \textit{canonically conjugate momentum to the coordinate $q_j$}.
+
+To quantize the system we need to replace the dynamical variables $(q_j, p_j)$ with canonically conjugate operators $(\hat{q_j}, \hat{p_j})$ satisfying the commutation relation $[\hat{q_j}, \hat{p_k}] = i\hbar \delta_{jk}$ and now the Hamiltonian of the system is replaced from the classical Hamiltonian $E = H(q_1,p_1, \dots ,q_j, p_j, \dots)$ to the quantum Hamiltonian $\hat{H} = H(\hat{q_1},\hat{p_1}, \dots ,\hat{q_j}, \hat{p_j}, \dots)$. We know that we can get any physical observable and the time evolution of states from the Hamiltonian using the schr\"{o}dinger equation. If we have the Hamiltonian, we have everything.
+
+I don't want to get too much into the example of the quantum harmonic oscillator because it is expected that the reader is already familiar with it. I'll just mention, that using Dirac's method, when solving the quantum harmonic oscillator we introduce annihilation and creation operators, $\hat{a}$ and $\hat{a}^\dag$ respectively, which are hermitian conjugates of each other, satisfying the commutation relation $[\hat{a}, \hat{a}^\dag] = 1$ meaning they are not observables, but all observables can be expressed with $\hat{a}$ and $\hat{a}^\dag$. $\hat{a}$ and $\hat{a}^\dag$ also have the nice property
+\begin{align*}
+    &\hat{a}^\dag \ket{n} = \sqrt{n+1}\ket{n+1} \\
+    &\hat{a} \ket{n} = \sqrt{n}\ket{n-1} \\
+    &\hat{a}\ket{0} = 0
+\end{align*}
+where $\ket{n}$ is the $n^{th}$ energy level of the system and $\ket{0}$ is the vacuum state. You can think of the annihilation and creating operators, as their name suggest, that they destroy(or reduce by one) and create(or increase by one) the state of the system when applied to a state.
+
 \subsection{The Quantization of the Electromagnetic Field}
 \subsubsection{The Homogeneous Electromagnetic Equation}
 We'll start from Maxwell's equations, proving one of the most important result of the electromagnetic theory that you've properly encountered before in you classical electromagnetism course.
@@ -242,7 +265,7 @@ Maxwell's equations in free space are:
 \begin{subequations}
     \label{eq:optim}
     \begin{align}
-        &\grad \cdot \textbf{E} = 0 \label{eq:Maxwell-1}\\
+        &\grad \cdot \textbf{E} = 0 \label{eq:Maxwell-1} \\
         &\grad \cdot \textbf{B} = 0 \label{eq:Maxwell-2}\\
         &\grad \cross \textbf{E} = \frac{\partial\textbf{B}}{\partial t} \label{eq:Maxwell-3}\\
         &\grad \cross \textbf{B} = \mu_0 \epsilon_0 \frac{\partial\textbf{E}}{\partial t} \label{eq:Maxwell-4}
@@ -306,7 +329,7 @@ We'll pick a polarization arbitrarily to be in the x direction(that way we get o
 Now that we have the homogeneous electromagnetic field equations at hand we can solve them to get the quantization of light.
 We can solve \ref{eq:Homo_electro_wave_pol} using separation of variables,
 $$E_x(z, t)= Z(z)T(t)$$
-Yielding the solution,
+Yielding the solution,\footnote{We've skipped several of steps going from the differential equation to their solutions, mainly it is not clear how the scalar constant in front of the expression got there, it has to do with the fact that the total energy of the electromagnetic field is given by $H = \frac{\epsilon_0}{2} \int_V \textbf{E}^2 + c^2 \textbf{B}^2 d^3 r$. We won't go into the calculations because they make it much more complicated and doesn't give much more insights into the physics}
 \begin{equation}
     \begin{split}
         E_x(z, t) = \sqrt{\frac{2 \omega_c^2}{V \epsilon_0}}q(t)\sin{kz} \\
@@ -323,7 +346,7 @@ The Hamiltonian is given by
     &= \frac{1}{2}[\dot{q}^2(t) + \omega_c^2 q^2(t)]
 \end{align}
 
-Now, going from dynamical variables to operators(considering $\dot{q} \equiv p$) we get,
+Now, going from dynamical variables to operators, $\hat{q}$ and $\hat{p}$ that satisfy the commutation relation $[\hat{q}, \hat{p}] = i\hbar$, we get
 \begin{align}
      &\hat{E}_x(z, t) = \sqrt{\frac{2 \omega_c^2}{V \epsilon_0}}\hat{q}(t)\sin{kz} \\
      &\hat{B}_y(z, t) = \sqrt{\frac{2 \mu_0}{V}}\hat{p}(t)\cos{kz} \\
@@ -437,7 +460,7 @@ thus the interaction Hamiltonian is
 \begin{equation}
     \hat{H}_{interaction} = \hbar\lambda(\hat{\sigma}_+ + \hat{\sigma}_-)(\hat{a} +  \hat{a}^\dag) 
     = \hbar\lambda(\hat{\sigma}_+\hat{a} + \hat{\sigma}_+\hat{a}^\dag + \hat{\sigma}_-\hat{a} + \hat{\sigma}_-\hat{a}^\dag) 
-\end{equation}
+\end{equation} \label{eq:interaction-hamiltonian}
 We shown the the operators $\hat{a}$ and $\hat{a}^\dag{}$ evolve as
 \begin{equation}
     \hat{a}(t) = \hat{a}(0)e^{-i\omega t}, \quad\quad \hat{a}^\dag{}(t) = \hat{a}^\dag{}(0)e^{i\omega t}
@@ -456,7 +479,7 @@ We can write while approximating $\omega_0 \approx \omega$
     \end{split}
 \end{equation}
 We can see that the last two term vary much more rapidly than the first two. Furthermore, the last two terms do not conserve energy(They correlate to [photon addition + atom excitation] and [photon reduction + atom grounded]), we're going to drop the last fast rotating terms\footnote{This is called the \textit{Rotating Wave Approximation} or RWA in short} and finally get
-\begin{equation}
+\begin{equation} \label{eq:interaction-hamiltonian-RWA}
     \boxed{H_{interaction} = \hbar\lambda(\hat{\sigma}_+\hat{a} + \hat{\sigma}_-\hat{a}^\dag)}
 \end{equation}
 
@@ -473,12 +496,54 @@ Finally, we can write the full JC Hamiltonian
 ...
 
 \subsubsection{Interaction with the Classical Field} \label{sec:interaction-with_classical-field}
-As you might have noticed, we are classical creatures, I'm (unfortunately) not in a superposition of being here and on the moon at the same time :(. As classical creatures, if we want to interact with the quantum world we need to do so with in classical means with a classical interface to the quantum world. Back to the Jaynes-Cummings model, what happens when we introduce a classical electromagnetic field(such as the drives of the system, which are the main subject of this project)
+As you might have noticed, we are classical creatures, I'm (unfortunately) not in a superposition of being here and on the moon at the same time :(. As classical creatures, if we want to interact with the quantum world we need to do so with in classical means with a classical interface to the quantum world. Back to the Jaynes-Cummings model, what happens when we introduce a classical electromagnetic field(such as the drives of the system, which are the main subject of this project).
+
+We can do the full rigorous way to calculate the dipole interactions between the quantized atom and the classical electromagnetic field, but instead, we can use a "hack" to make the calculations much simpler since we already calculated the full interaction between the atom and the quantized electromagnetic field. The Hamiltonian of the full quantum interaction as given in equation \ref{eq:interaction-hamiltonian} is
+\[
+    H_{interaction} = \hbar \lambda (\hat{\sigma}_+ + \hat{\sigma}_-)(\hat{a} + \hat{a}^\dag)
+\]
+We can go from the quantized field to the classical field by simply replacing the field operators with dynamical variables representing the strength of the field, $\hat{a} \rightarrow a$ and $\hat{a}^\dag \rightarrow a^*$. We can also replace $\hat{\sigma}_+ + \hat{\sigma}_-$ with the Pauli matrix $\hat{\sigma}_1$ and get
+\begin{equation}\label{eq:atom-field-class-int}
+    H_{classical} = \hbar \lambda \hat{\sigma}_1(a + a^*) = \hbar \lambda a \cdot \hat{\sigma}_1 + h.c.
+\end{equation}
+
+The change from the middle term to the right term is allowed since we know that the Pauli matrices are observable quantities and so they are hermitian conjugates of themselves. $a$ is the amplitude of the classical field, later we'll replace it with $\epsilon_I(t)$ and $\epsilon_Q(t)$ for the drive fields since the classical field is not constant and it is, in fact, what we control in the system, but I'm getting ahead of myself, more on this will be shown in the optimal control chapter \ref{chap:optimal}.
 
 \subsection{Coherent States}
 ...
 \subsection{Fock States(Number States)}
-...
+As always in quantum mechanics, when we have the Hamiltonian of the system we want to to it's eigenvalues, corresponding to the quantized energies of the system, and the eigenvectors, that form a complete basis of the space of states.
+
+We know that the Hamiltonian of a single mode in a cavity is given by
+\[
+    \hat{H} = \hbar \omega (\hat{a}^\dag \hat{a} + \frac{1}{2}) \quad \text{with} \quad [\hat{a}, \hat{a}^\dag] = 1
+\]
+The eigenequation is
+\[
+    \hat{H}\ket{\psi_n} = E_n \ket{\psi_n}
+\]
+We know that the eigenvalues of the equation are
+\[
+    E_n = \hbar \omega (n + \frac{1}{2}) \quad \text{with} \quad n = 0, 1, 2, \dots
+\]
+it is customary to write the eigenvectors as $\ket{n} := \ket{\psi_n}$ because of their behaviour, and we know that they satisfy the equations
+\begin{align*}
+    &\hat{a}^\dag \ket{n} = \sqrt{n+1}\ket{n+1} \\
+    &\hat{a} \ket{n} = \sqrt{n}\ket{n-1} \\
+    &\hat{a}\ket{0} = 0
+\end{align*}
+The eigenvectors of the Hamiltonian are also the eigenvectors of the \textit{number operator}, $\hat{N} = \hat{a}^\dag \hat{a}$ in the eigenequation
+\[
+    \hat{N}\ket{n} = n\ket{n}
+\]
+these eigenvectors are called \textit{number states} or \textit{Fock states} after Vladimir Fock who developed this representation. We'll see why they are called this way soon.
+
+We can show that the momentum operator of electromagnetic radiation takes the form $\hat{P} = \hbar \textbf{k} \hat{a}^\dag \hat{a}$ where $\textbf{k}$ is the wave number of the electromagnetic wave. Applying the momentum operator to the number states we  see that
+\[
+    \hat{P}\ket{n} =  \hbar \textbf{k} \hat{a}^\dag \hat{a} \ket{n} = n\hbar \textbf{k}\ket{n}
+\]
+This is an important result, \textbf{the $\ket{n}$ state has well defined energy and momentum, same as $n$ particles, each with energy $\hbar \omega$ and momentum $\hbar \textbf{k}$, we call these particles \textit{photons}.} Hopefully you now see why these are called number states, they correspond to the \textit{number of photons in the cavity}.
+
 \subsection{Visualizing Quantum States}
 As you'll soon find out in the optimal control chapter, we're going to develop a system that is some sort of a \textit{black box}. We can't really control directly how it works, we can only make indirect changes to try to get everything to work\footnote{This is the nature of numerical optimization problems, in the next chapter you'll see much more why we can't control the system directly}.
 
@@ -865,7 +930,7 @@ As expected, we get exactly what we want, the pulse uses the least amount of tim
 
 \subsection{Implementing Qubit Operations with GRAPE}
 
-\subsubsection{DRAG - Imperfect Qubits}
+\subsubsection{DRAG - Imperfect Qubits} \label{sec:DRAG}
 When we did all of our calculation on the qubit we didn't include one detail, it's really hard to create a qubit, there's a reason why I don't have my quantum laptop yet after all :(. In the way our qubits are implemented, there are actually more then 2 levels. It's not a 2 level system but we treat it as one since the higher levels are off-resonance\footnote{as explained in the beginning}, but still there's a chance some of the higher levels will get excited by our pulses or some other physical phenomena and we want to account for it. The way we can do so is with the Derivative Removal via Adiabatic Gate(DRAG) algorithm. The idea being we make the qubit in the simulation to be more then a 2 level system, change the Hamiltonian a little bit(as you'll see later) so it accounts for the off-resonance higher levels and use the same grape algorithm to optimize for the entire system and not only the lower 2 levels.
 
 Before we continue to implement DRAG, let's see if the 3rd level really is that of a problem, we'll run a simulation of GRAPE just as we did before but this time with 3 levels instead of 2, and the 3rd level should start and end at 0 population. We get after running GRAPE
@@ -1175,6 +1240,8 @@ If I we're the continue this project, properly the first thing I would do is exp
 
 Another, pretty obvious, continuation to this project would be, you know, actually implementing it, physically, in an experiment. This project is (almost) entirely theoretical and numerical, for all you know I was lying to you the hole time. It would be nice to actually check GRAPE on quantum system, but since Serge's lab is not yet fully built and there is no fridge to cool the quantum system system to to be able to create stable quantum states, it is impossible to do the experiments needed. More then that, it would make the project much longer then it is right now, and we must finish it at some point.
 
+ The last important addition I can add to the project is characterizing system of multiple qubits, this shouldn't be that difficult since the qubit-qubit(or atom-atom) interaction aren't that different from the qubit-cavity interaction we already have, and our optimal control code accepts quantum states in any Hilbert space so to only different would be some additional Hamiltonian terms of the qubit-qubit interaction and different initial and target states that include the multiple qubit situation(which from the introduction we know that it's simply the tensor product of the qubit states).
+
 % TODO: Refine this and maybe add a thanking paragraph
 
 
@@ -1417,12 +1484,12 @@ Another, pretty obvious, continuation to this project would be, you know, actual
 % As you might have noticed, we are classical creatures, I'm not in a superposition of being here and on the moon at the same time :(. As classical creatures, if we want to interact with the quantum world we need to do so with a classical interface. Back to the Jaynes-Cummings model, what happens when we introduce a classical electromagnetic field(such as the drives of the system, which are the main subject of this project)
 
 \newpage
-\section{Analytical Calculations of Optimal Pulses} \label{appen:annalytic}
-Throughout chapter \ref{chap:optimal} we embarked on journey finding optimal pulses with numerical methods, but it's important to note that in some specific cases we can calculate the solution analytically. This has more uses than for mathematical beauty, we can use these cases as test cases to see that the GRAPE algorithm actually works and gives the same answer as we got in the analytical calculation. Lets start with the simplest operation, the single qubit operation.
-\subsection{Single Qubit Operation}
+\section{Analytical Calculations of Optimal Pulses and the Rabi Oscillations} \label{appen:annalytic}
+Throughout chapter \ref{chap:optimal} we embarked on journey finding optimal pulses with numerical methods, but it's important to note that in some specific cases we can calculate the solution analytically. This has more uses than for mathematical beauty, we can use these cases as test cases to see that the GRAPE algorithm actually works and gives the same answer as we got in the analytical calculation. We are going to calculate the pulses needed to get the atom from the ground to the excited state and show the important result of the Rabi oscillations along the way.
+
 We're going to start with everyone's favourite, Shr\"{o}dinger's equation\footnote{Planck's reduced constant is set to $1$, $\hbar = 1$}
 \[
-    \dot{\psi} = -i H \psi
+    \dot{\psi} = -i \hat{H} \psi
 \]
 A state of a qubit is represented by it's probabilities to be in the ground and excited states
 \[
@@ -1432,13 +1499,12 @@ where $C_g$ and $C_e$ are the amplitudes of the ground and excited states.
 
 Shr\"{o}dinger's equation now becomes
 \begin{equation} \label{eq:shrod-psi-explit}
-     \dot{C_g}(t) \ket{g} + \dot{C_e}(t) \ket{e} = -i H_{atom} (C_g(t) \ket{g} + C_e(t) \ket{e})
+     \dot{C_g}(t) \ket{g} + \dot{C_e}(t) \ket{e} = -i \hat{H}_{atom} (C_g(t) \ket{g} + C_e(t) \ket{e})
 \end{equation}
 
-% TODO: Add acutall equation numbers from the interaction with the classical field
-The Hamiltonian of an atom interacting with a classical field(ignoring the cavity) was derived in \ref{eq:atom-ham-class-field}. We can write it as
+The Hamiltonian of an atom interacting with a classical field(ignoring the cavity) was derived section \ref{sec:interaction-with_classical-field} and is given from equation \ref{eq:atom-field-class-int}. We can write it as
 \[
-    H_{atom} = \omega_0 \hat{a}^\dag \hat{a} + \Omega(t)\hat{\sigma}_1= \omega_0\ket{e}\bra{e} + \Omega(t)(\ket{g}\bra{e} + \ket{e}\bra{g})
+    \hat{H}_{atom} = \omega_0 \hat{a}^\dag \hat{a} + \Omega(t)\hat{\sigma}_1= \omega_0\ket{e}\bra{e} + \Omega(t)(\ket{g}\bra{e} + \ket{e}\bra{g})
 \]
 Where $\Omega(t)$ is the electromagnetic field amplitude.
 
@@ -1454,10 +1520,92 @@ We can left multiply this equation once with $\bra{g}$ and once with $\bra{e}$, 
 \begin{align*}
     \bra{g} \quad &\rightarrow \quad \dot{C_g}(t) = -i \Omega(t)C_e(t) \\
     \bra{e} \quad &\rightarrow \quad \dot{C_e}(t) = -i \omega_0 C_e(t) - i\Omega(t) C_g(t)
-\end{align*} % TODO: Finish solution
+\end{align*} 
+Instead of looking at an arbitrary pulse $\Omega (t)$, we can look at a sinusoidal pulse of the form $\Omega (t) = \frac{\Omega_0}{2}e^{i\omega t}$ where $\omega$ is the frequency of the pulse. The general equations now become
+\begin{align*}
+    &\dot{C_g}(t) = -i \frac{\Omega_0}{2}e^{i\omega t}C_e(t) \\
+    &\dot{C_e}(t) = -i \omega_0 C_e(t) - i \frac{\Omega_0}{2}e^{i\omega t} C_g(t)
+\end{align*}
+It's comfortable to make the unitary transformation
+\[
+    \alpha(t) \rightarrow C_g(t) \quad \beta(t) \rightarrow e^{i \omega t} C_e(t)
+\]
+and after substituting and a bit of algebra get the linear system of equations
+\begin{align*}
+    &\dot{\alpha} = i \frac{\Omega_0}{2} \beta \\
+    &\dot{\beta} = i \frac{\Omega_0}{2} \alpha + i \Delta \beta
+\end{align*}
+where $\Delta = \omega - \omega_0$ and is known as the detuning. Deriving the second equation over time and substituting $\dot{\alpha}$ with it's known expression we get the following differential equation for $\beta$
+\[
+    \ddot{\beta} - i \Delta \dot{\beta} + \frac{\Omega_0^2}{4}\beta = 0
+\]
+This is pretty much the easiest differential equation you can hope for, we find the solution by "guessing" a solution of the form $\beta(t) = e^{A t}$ and when plugging that into the equation we get the quadratic
+\[
+    A^2 - i \Delta \cdot A + \frac{\Omega_0^2}{4} = 0
+\]
+Assuming my high school math teacher wasn't lying to me, the solutions to this equation are
+\[
+    A_{\pm} = \frac{i \Delta \pm i\sqrt{\Delta^2 + \Omega_0^2}}{2}
+\]
+We'll define the parameter
+\[
+    \Omega = \sqrt{\Delta^2 + \Omega_0^2}
+\]
+The two solutions we found constitute a basis of solution for the linear equation, so the general solution is of the form
+\[
+    \beta(t) = e^{i\frac{\Delta t}{2}}(C_1 e^{i \frac{\Omega t}{2}} + C_2 e^{-i \frac{\Omega t}{2}})
+\]
+We are looking for solutions that start at the ground state, this gives us an initial condition
+\begin{align*}
+    &\beta(0) = 0 \quad \Rightarrow \quad C_1 + C_2 = 0 \\
+    &\alpha(0) = 1 \quad \Rightarrow \quad \dot{\beta(0)} = i \frac{\Omega_0}{2} = i \Omega C_1
+\end{align*}
+Plugging in the calculated coefficients and the solution becomes
+\[
+    \beta(t) = i \frac{\Omega_0}{\Omega}e^{i \frac{\Delta t}{2}} \sin{(\frac{\Omega}{2}t)}
+\]
+Remember that $\beta$ is the population of the excited state with the addition of a phase, the phase doesn't change the probabilities so
+\[
+    P_e(t) = \abs{C_e}^2 = \abs{\beta}^2 = \frac{1}{2}\frac{\Omega_0^2}{\Omega^2}(1 - \cos{(\Omega t)})
+\]
+where $P_e(t)$ is the probability for the atom to be in an excited state at time $t$.
 
+The result we got, where the atom oscillates between the ground and excited states is called \textbf{Rabi Oscillations}, We'll plot this amazing results, once with zero detuning(and therefore $\Omega = \Omega_0$) and once with non zero detuning(and therefore $\Omega > \Omega_0$)
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\columnwidth]{Rabi-Oscillations.png}
+    \caption{Rabi oscillations of atom in a classical electromagnetic field. The top graph is without detuning $\Delta = 0$ and the bottom graph is with detuning $\Delta \ne 0$}
+    \label{fig:rabi-oscillations}
+\end{figure}
+You can see without detuning the atom oscillates between ground and excited and there are two note able differences between the oscillations with and without detuning. With detuning the the atom doesn't reach the excited state, it does part of the way and then goes back down, this means you can't send simple. This means that if you want  to get to the excited states you need to send a pulse with exactly the same frequency as the atom. The other difference is that with detuning the oscillations are more rapid.
 
+We can take everything we got so far and construct a pulse that will take the ground state into the excited state. First the pulse must have the same frequency as for the energy level difference in the atom. If the total time of the pulse is T then the amplitude of the pulse should be one so that the Rabi oscillations just reach the excited states. We can put this into an equation
+\[
+    P_e(T) = 1 = \frac{1}{2}(1 - \cos (\Omega_0 T))
+\]
+And the solutions are
+\[
+    \Omega_0 = \frac{\pi k}{T} \quad \text{for} \quad k = 1, 2, 3, \dots
+\]
+Where $k$ corresponds to the amount of oscillations between the ground and excited states. Ideally the atom would go directly to the excited state without doing all that back and forth stuff.
 
+Putting it all together, for a two level atom with energy difference between the levels of $\hbar \omega_0$, and a pulse with duration $T$, the pulse you need to send to get from the ground state to the excited state is
+\[
+    \boxed{\Omega(t) = \frac{\pi}{2 T} e^{i \omega_0 t}}
+\]
+Where the real and imaginary parts correspond the sin and cos waves we send to the atom(or I and Q pulses if you prefer). Writing them explicitly we get
+\[
+    \boxed{\Omega_I (t) = \frac{\pi k}{T} \sin (\omega_0 t)} \quad \text{and} \quad \boxed{\Omega_Q (t) = \frac{\pi k}{T} \cos (\omega_0 t)}
+\]
+We can actually check using the simulation we made in chapter \ref{chap:optimal} and see that yes! These pulses lead to the qubit going from the ground to excited states, amazing!
+
+There is actually a more general result about \textit{pi-pulses} we can see from here, we won't prove it but we can see it works. Any pulse, doesn't has to be a sinusoidal, that satisfies
+\[
+    \int_0^T \Omega(t) dt = \pi
+\]
+Would take the ground state atom to the excited state. You can use a something like a Gaussian or some other weird pulse that satisfies it and they will all work. We can see that indeed, the pulse we made does satisfy it.
+
+There are actually much more examples we can find analytical solutions for, even for a 3-level system coupled with a cavity but we won't touch on them here, they are much more complicated, although they are definitely possible to calculate analytically. What we got is the super important result of called the Rabi oscillations and it's important to understand what people mean when they talk about them.
 
 \newpage
 \section{Another Method: Computational Graphs}
@@ -1588,6 +1736,79 @@ And the derivatives are calculated rather easily as
 It's important to note that $\frac{\partial L_1^i}{\partial \epsilon_j} = 0$ for $i \ne j$ so we didn't refer to those derivative(This is true for the derivative between any two layers).
 
 We now everything we need to implement GRAPE as a computational graph, and we can use a library, such as google's tensorflow, to find the optimal pulse.
+
+\newpage
+\section{Quantizing Electric Circuit and the Josephson Junction}
+Throughout the project, I mentioned several times that the physical implementation of the qubit is not  the subject of the project and ignored it. It would be a crime no to at least give a simple explanation of the implementation of the qubit, especially since we dedicated and entire section(section \ref{sec:DRAG}) to the problem with our physical implementation. In this appendix I will try to give a simple explanation of  the qubit as a quantum LC circuit, using the  tools we got when we quantized the electromagnetic field.
+
+This appendix is here for two reasons. The first we already mentioned, to gain some insights on how the qubit is implemented physically. The second, less obvious reason, is to really drive home the point that Dirac's method for Canonical quantization can be applied to any oscillating phenomena, from mechanical oscillator, to the electromagnetic field and even an LC circuit as we'll show here. This shows how amazing is the Dirac formalism is and how general an applicable it is.
+
+\subsection{Quantizing the LC Circuit}
+Before we look at the actual qubit, lets first quantize the LC circuit. The LC circuit is constructed by connecting a capacitor with capacitance $C$ to a coil with inductance $L$, hence the name, \textit{LC}. Drawing it in a diagram is as shown
+\begin{figure}[H]
+    \centering
+    % TODO: Change image to one with marking of the magnetic inductance field and the  electric capacitance field
+    \includegraphics[width=0.6\columnwidth]{LC-circuit.png}
+    \caption{The LC circuit} 
+    \label{fig:LC-circuit}
+\end{figure}
+
+To begin the quantization we first need choose a pair of canonically conjugate variables that represents the state of the system. The most obvious pair of variables would be the voltage $V$ and the current $I$, but turns out they are not canonically conjugate variables, instead, we'll choose the charge of the capacitor $q$ and the inductor's magnetic flux $\phi$ to be the variables. 
+% TODO: Maybe check the V and I are not canonically conjugate
+Let's check that they are really canonically conjugate. The energy(and therefore, the Hamiltonian) of the capacitor's electric field is given by
+\[
+    H_C = \frac{q^2}{2C}
+\]
+and the energy of the magnetic field stored in the inductor is given by
+\[
+    H_L = \frac{\phi^2}{2L}
+\]
+Now we can sum these two donations to the Hamiltonian and get that the Hamiltonian of the LC circuit is
+\[
+    H_{LC}(q, \phi) = \frac{\phi^2}{2L} + \frac{q^2}{2C}
+\]
+Lets now write the Hamilton equations of motion and see if $q$ and $\phi$ are actually canonically conjugate
+\begin{align}
+    &\dot{q} = \frac{\partial H_{LC}}{\partial \phi} = \frac{\phi}{L} = I \label{eq:def-current}\\
+    &\dot{\phi} = -\frac{\partial H}{\partial q} = -\frac{q}{C} = -V \label{eq:def-potential}
+\end{align}
+These equation are current since \ref{eq:def-current} is the definition of current and \ref{eq:def-potential} is the definition of potential. We have no proven that $q$ and $\phi$ are canonically conjugate variables and can go on to quantize them.
+
+To quantize these variables we simply need to replace them with operators
+\begin{align*}
+    q \rightarrow \hat{q} \\
+    \phi \rightarrow \hat{\phi}
+\end{align*}
+satisfying the commutation relation
+\[
+    [\hat{q}, \hat{\phi}] = i\hbar
+\]
+as always with quantum harmonic oscillator we'll define annihilation and creation operators
+\begin{align*}
+    &\hat{a} = \frac{\hat{q}}{q_0} + i\frac{\hat{\phi}}{\phi_0} \\
+    &\hat{a}^\dag = \frac{\hat{q}}{q_0} - i\frac{\hat{\phi}}{\phi_0}
+\end{align*}
+where
+\begin{align*}
+    &q_0^2 = 2\hbar\sqrt{\frac{C}{L}} \\
+    &\phi_0^2 = 2\hbar\sqrt{\frac{L}{C}}
+\end{align*}
+% TODO: Maybe don't skip the basic algebra
+After some algebra magic we can get the expression of the Hamiltonian
+\[
+    \hat{H}_{LC} = \hbar \omega (\hat{a}^\dag \hat{a} + \frac{1}{2}) \quad \text{with} \quad \omega = \frac{1}{\sqrt{LC}}
+\]
+This is the good old expression for the Hamiltonian of a quantum harmonic oscillator and we can treat at as we did with any other quantum harmonic oscillator, getting all the number states and observable of the system from the creation and annihilation operators.
+
+\subsection{Artificial Atoms - The Josephson Effect}
+The problem with the simple quantum LC circuit is that it's energy levels are \textit{linear}. By linear, I mean that the difference in energy between two neighboring levels is the same for every level, $E_{n + 1} - E_n = \hbar \omega$ for all $n$. This is a problem since we want to treat it as a two level system but if we send a pulse with $\hbar \omega$ energy we want it to affect only the lower two levels but since the energy difference between the levels is the same for all levels, sending such a pulse would also excite the higher levels and we don't want that.
+% TODO: Add energy level diagrams
+We want to introduce \textit{un-linearity} to the levels, so still $E_1 - E_0 = \hbar \omega_{01} $ but $E_2 - E_1 = \hbar \omega_{12}$, $E_3 - E_2 = \hbar \omega_{23}$ and so on, where $\omega_{n\ n+1} \ne \omega_{01}$. This way if the system is only populated at one of the lower two levels and we send a pulse with energy $\hbar \omega$, the only levels affected are the lower two and not the higher ones\footnote{This is obviously an ideal case, as we seen in section \ref{sec:DRAG} about DRAG, this is not always the case and we need to add correction to make it work}.
+
+To create these a-linearities we can use the \textbf{\textit{Josephson Junction}}. A full description of the Josephson Junction is way out of the scope of this appendix but we'll give a brief overview of how it works. The Josephson Junction in a circuit diagram is drawn as a little $x$, and the circuit diagram of the LC circuit with it is
+
+
+% TODO: Add content, see coursera course first lesson last video
 
 % \newpage
 % %Examples of mixers and couplers
