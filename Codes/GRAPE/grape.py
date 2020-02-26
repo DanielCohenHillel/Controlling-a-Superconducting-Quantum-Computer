@@ -11,6 +11,7 @@ import scipy.linalg
 a = 0.4*0
 state_2 = np.array([0, 0, 1])
 int_pen = 1*0
+n_ph = 5
 
 
 class GrapePulse:
@@ -147,7 +148,7 @@ class GrapePulse:
                                          factr=1e12)
         else:
             result = spopt.fmin_l_bfgs_b(self.cost, self.initial_pulse,
-                                         approx_grad=True, factr=1e12)
+                                         self.cost_gradient, factr=1e12)
         result = (result[0].reshape(self.Nd,
                                     self.Ns), result[1])
         self.run_operator(result[0], show_prob=True)
@@ -369,6 +370,95 @@ class GrapePulse:
         constraint_total = g_band_lin + g_amp_lin + g_drag*a + g_int*int_pen
         return constraint_total.flatten()
 
+    def cav_cost(self, pulse, kind='cost'):
+        sum_fid = 0
+
+        shape_cav = [[2, int(self.dims/2)], [1, 1]]
+
+        qubit_init = np.array([[0]]*shape_cav[0][0])
+        qubit_target = np.array([[0]]*shape_cav[0][0])
+
+        cavity_init = np.array([[0]]*shape_cav[0][1])
+        cavity_target = np.array([[0]]*shape_cav[0][1])
+
+        qubit_qobj_init = qt.Qobj(self.psi_initial, shape_cav).ptrace(0)
+        qubit_qobj_target = qt.Qobj(self.psi_target, shape_cav).ptrace(0)
+
+        cavity_qobj_init = qt.Qobj(self.psi_initial, shape_cav).ptrace(1)
+        cavity_qobj_target = qt.Qobj(self.psi_target, shape_cav).ptrace(1)
+        for i in range(shape_cav[0][0]):
+            qubit_init[i] = np.abs(qubit_qobj_init[i][0][i])
+            qubit_target[i] = np.abs(qubit_qobj_target[i][0][i])
+        for i in range(shape_cav[0][1]):
+            cavity_init[i] = np.abs(cavity_qobj_init[i][0][i])
+            cavity_target[i] = np.abs(cavity_qobj_target[i][0][i])
+
+        # print(qubit_init)
+        # print(np.array([np.append(cavity_init, [0])]).T)
+
+        og_cavity_init = cavity_init
+        og_cavity_target = cavity_target
+
+        og_base_hamiltonian = self.base_hamiltonian
+        og_drive_hamiltonians = self.drive_hamiltonians
+
+        w_a = 5.66*0.5
+        w_c = 4.5
+        chi = 2
+        alpha = w_a*0.05
+        K = w_c*10**(-3)
+        chitag = chi*10**(-2)
+        for i in range(n_ph):
+            cavity_init = np.array([np.append(cavity_init, [0])]).T
+            cavity_target = np.array([np.append(cavity_target, [0])]).T
+
+            self.psi_initial = np.kron(qubit_init, cavity_init)
+            self.psi_target = np.kron(qubit_target, cavity_target)
+            self.dims = len(self.psi_initial)
+
+            qubit_levels = len(qubit_init)
+            cavity_levels = len(cavity_init)
+
+            a = qt.tensor(qt.destroy(qubit_levels), qt.qeye(cavity_levels))
+            ad = a.dag()
+
+            c = qt.tensor(qt.qeye(qubit_levels), qt.destroy(cavity_levels))
+            cd = c.dag()
+
+            Ha = w_a*ad*a + (alpha/2)*ad*ad*a*a
+            Hc = w_c*cd*c + (K/2)*cd*cd*c*c
+            Hi = chi*cd*c*ad*a + chitag*cd*cd*c*c*ad*a
+            H0 = np.array(Ha + Hc + Hi)
+
+            Ha_I = np.array(a + ad)
+            Ha_Q = np.array(1j*(a - ad))
+
+            Hc_I = np.array(c + cd)
+            Hc_Q = np.array(1j*(c - cd))
+
+            drive_hamiltonians = [Ha_I, Ha_Q, Hc_I, Hc_Q]
+
+            self.drive_hamiltonians = drive_hamiltonians
+            self.base_hamiltonian = H0
+
+            if kind == 'cost':
+                sum_fid += self.cost(pulse)
+            else:
+                sum_fid += self.cost_gradient(pulse)
+        cavity_init = og_cavity_init
+        cavity_target = og_cavity_target
+        self.psi_initial = np.kron(qubit_init, cavity_init)
+        self.psi_target = np.kron(qubit_target, cavity_target)
+        self.dims = len(self.psi_initial)
+
+        self.base_hamiltonian = og_base_hamiltonian
+        self.drive_hamiltonians = og_drive_hamiltonians
+
+        return sum_fid
+
+    def cost_gradient_cav(self, pulse):
+        return self.cav_cost(pulse, kind='grad')
+
     def run_operator(self, pulse, show_bloch=False, calc_fidelity=True, show_prob=False):
         """
         Runs the pulse to get the final state and fidelity after driving the qubit
@@ -380,6 +470,8 @@ class GrapePulse:
         """
         prod = np.identity(self.dims)
         U = self.eigy_expm((1j * self.dt) * self.H(pulse))
+        # print(U[0].shape)
+        # print(prod.shape)
         self.U = U
         if show_bloch:
             B = qt.Bloch()
@@ -393,15 +485,28 @@ class GrapePulse:
                 [self.dims, self.Ns])
             final_prob = np.zeros(
                 [self.dims, self.Ns])
-            fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-            ax1.set_title("Initial")
-            ax2.set_title("Final")
+            # fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+            # ax1.set_title("Initial Level Population Over Time")
+            # ax2.set_title("Final Level PopulationTime")
+
+            # ax1.set_xlabel("Time")
+            # ax1.set_ylabel("Amplitude")
+            # ax2.set_xlabel("Time")
+            # ax2.set_ylabel("Amplitude")
+            plt.figure()
             leg = []
             wig = []
+            N_cav = int(self.dims/2)
             for i in range(self.dims):
+                # print(N_cav)
                 prod = np.identity(self.dims)
                 prodi = np.identity(self.dims)
-                leg.append("|" + str(i) + ">")
+                # leg.append("|" + str(i) + ">")
+                if i < N_cav:
+                    leg.append(r'$|g> \otimes |{}>$'.format(str(i)))
+                else:
+                    leg.append(r'$|e> \otimes |{}>$'.format(str(i-N_cav)))
+
                 for k in range(self.Ns):
                     prodi = Ui[k] @ prodi
                     prod = U[k] @ prod
@@ -409,9 +514,14 @@ class GrapePulse:
                         (prodi @ self.psi_initial)[i]) ** 2
                     final_prob[i, k] = np.abs(
                         (prod @ self.psi_initial)[i]) ** 2
-                ax1.plot(self.times, initial_prob[i, :])
-                ax2.plot(self.times, final_prob[i, :])
-            ax1.legend(leg)
+                # ax1.plot(self.times, initial_prob[i, :])
+                # ax2.plot(self.times, final_prob[i, :])
+                plt.plot(self.times, final_prob[i, :])
+                plt.xlabel("Time")
+                plt.ylabel("Population %")
+                plt.title(
+                    "Level Population Over the Duration of the Optimized Pulse")
+            # ax1.legend(leg)
             psi_final = prod @ self.psi_initial
             return psi_final
         else:

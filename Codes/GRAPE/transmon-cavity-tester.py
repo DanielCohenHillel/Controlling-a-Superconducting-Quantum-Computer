@@ -17,20 +17,20 @@ def smooth(y, box_pts):
 
 # Time variables
 T = 10  # Total time of simulation
-Ns = 500  # Number of time steps
+Ns = 100  # Number of time steps
 dt = T/Ns
 times = np.linspace(0.0, T, Ns)
 
 # Values from Phillip's thesis
-w_a = 5.66
+w_a = 5.66*0.5
 w_c = 4.5
 chi = 2
 
 qubit_levels = 2
-cavity_levels = 7
+cavity_levels = 50
 
 psi_initial = tensor(basis(qubit_levels, 0), basis(cavity_levels, 0))
-psi_target = tensor(basis(qubit_levels, 0), basis(cavity_levels, 4))
+psi_target = tensor(basis(qubit_levels, 0), basis(cavity_levels, 1))
 
 # Anharmonic
 alpha = w_a*0.05
@@ -38,16 +38,16 @@ K = w_c*10**(-3)
 chitag = chi*10**(-2)
 
 guess_freq = 1
-guess_width = 2
+guess_width = 50
 guess_amp = (np.pi/(2*T))*2
-QI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2) * \
+QI = guess_amp*np.exp((-(times)**2)/guess_width**2) * \
     np.sin(w_a*times)*(1 + 0.2*np.random.random(Ns))
-QQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2) * \
+QQ = guess_amp*np.exp((-(times)**2)/guess_width**2) * \
     np.cos(w_a*times)*(1 + 0.2*np.random.random(Ns))
 
-CI = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2) * \
+CI = guess_amp*np.exp((-(times)**2)/guess_width**2) * \
     np.sin(w_c*times)*(1 + 0.2*np.random.random(Ns))
-CQ = guess_amp*np.exp((-(times - T/2)**2)/guess_width**2) * \
+CQ = guess_amp*np.exp((-(times)**2)/guess_width**2) * \
     np.cos(w_c*times)*(1 + 0.2*np.random.random(Ns))
 
 
@@ -91,45 +91,74 @@ print(np.abs(fidelity))
 #     pulse, fidelity = test_pulse.optimize()
 print("Total time: ", time.time() - itime)
 
-# Some graphs
-# Creating plots for the amplitudes
-fig, axes = plt.subplots(2, 2)
-# print(axes)
-axes[0, 0].set_title("Initial pulse")
+# # Some graphs
+# # Creating plots for the amplitudes
+# fig, axes = plt.subplots(2, 2)
+# # print(axes)
+# axes[0, 0].set_title("Initial pulse")
 
-axes[0, 0].step(times, QI)
-axes[0, 0].step(times, QQ)
+# axes[0, 0].step(times, QI)
+# axes[0, 0].step(times, QQ)
 
-FQI = np.fft.ifft(QI)
-FQQ = np.fft.ifft(QQ)
+# FQI = np.fft.ifft(QI)
+# FQQ = np.fft.ifft(QQ)
 
-fft_freq = np.fft.fftfreq(Ns, dt)
-# Plotting the final control pulses in frequency space
-axes[1, 0].set_title("final pulse frequency space")
-axes[1, 0].step(fft_freq, FQI)
-axes[1, 0].step(fft_freq, FQQ)
+# fft_freq = np.fft.fftfreq(Ns, dt)
+# # Plotting the final control pulses in frequency space
+# axes[1, 0].set_title("final pulse frequency space")
+# axes[1, 0].step(fft_freq, FQI)
+# axes[1, 0].step(fft_freq, FQQ)
 
-# Plotting the final control pulses
-axes[0, 1].set_title("final pulse")
-axes[0, 1].step(times,  pulse[0])
-axes[0, 1].step(times,  pulse[1])
+# # Plotting the final control pulses
+# axes[0, 1].set_title("final pulse")
+# axes[0, 1].step(times,  pulse[0])
+# axes[0, 1].step(times,  pulse[1])
 
-FQI = np.fft.ifft(pulse[0])
-FQQ = np.fft.ifft(pulse[1])
-# Plotting the final control pulses in frequency space
-axes[1, 1].set_title("final pulse frequency space")
-axes[1, 1].step(fft_freq, FQI)
-axes[1, 1].step(fft_freq, FQQ)
+# FQI = np.fft.ifft(pulse[0])
+# FQQ = np.fft.ifft(pulse[1])
+# # Plotting the final control pulses in frequency space
+# axes[1, 1].set_title("final pulse frequency space")
+# axes[1, 1].step(fft_freq, FQI)
+# axes[1, 1].step(fft_freq, FQQ)
 
-fig, axes = plt.subplots(2)
-axes[0].set_title("Cavity initial")
-axes[0].legend(["I", "Q"])
-axes[0].step(times, CI)
-axes[0].step(times, CQ)
+# # plt.show()
+# # --- Cavity ---
+# fig, axes_cav = plt.subplots(2)
+# axes_cav[0].set_title("Initial Cavity Pulses")
+# # axes_cav[0].legend(["I", "Q"])
+# axes_cav[0].plot(times, CI)
+# axes_cav[0].plot(times, CQ)
 
-axes[1].set_title("Cavity Final")
-axes[1].legend(["I", "Q"])
-axes[1].step(times, pulse[2])
-axes[1].step(times, pulse[3])
+# axes_cav[1].set_title("Final Cavity Pulses")
+# axes_cav[0].legend([r'$\epsilon_I^{Cavity}$', r'$\epsilon_Q^{Cavity}$'])
+# axes_cav[1].plot(times, pulse[2])
+# axes_cav[1].plot(times, pulse[3])
 
+# # --- Transmon ---
+# fig_cav, axes = plt.subplots(2)
+# axes[0].set_title("Initial Qubit Pulses")
+# axes[0].plot(times, QI)
+# axes[0].plot(times, QQ)
+# axes[0].legend([r'$\epsilon_I^{Qubit}$', r'$\epsilon_Q^{Qubit}$'])
+# # axes[0].legend(['QI', 'QQ'])
+
+# # -- Final --
+# axes[1].set_title("Final Qubit Pulses")
+# axes[1].plot(times,  pulse[0])
+# axes[1].plot(times,  pulse[1])
+
+
+# axes[0].set_xlabel("Time (ns)")
+# axes[1].set_xlabel("Time (ns)")
+# axes_cav[0].set_xlabel("Time (ns)")
+# axes_cav[1].set_xlabel("Time (ns)")
+
+# axes[0].set_ylabel("Amplitude (MHz)")
+# axes[1].set_ylabel("Amplitude (MHz)")
+# axes_cav[0].set_ylabel("Amplitude (MHz)")
+# axes_cav[1].set_ylabel("Amplitude (MHz)")
+
+# # plt.tight_layout()
+# fig.tight_layout()
+# fig_cav.tight_layout()
 plt.show()
