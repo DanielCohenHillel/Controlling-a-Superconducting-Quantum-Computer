@@ -46,8 +46,8 @@ Hq_I = (q + qd)
 Hq_Q = 1j*(q - qd)
 
 # -- Time variables --
-T = 8  # 1/alpha
-Ns = 100
+T = 20  # 1/alpha
+Ns = 500
 
 dt = T/Ns
 times = np.linspace(0.0, T, Ns)
@@ -69,8 +69,8 @@ for i, t in enumerate(times):
 # -- Random Initial Pulses --
 gaussian_window = gaussian(int(Ns/10), Ns/50, 1)
 
-rand_amp_Q = 1/1000
-rand_amp_I = 1/1000
+rand_amp_Q = 1/3000
+rand_amp_I = 1/3000
 
 conv_I = (ndi.convolve((np.random.random(Ns) - 0.5) *
                        2 * rand_amp_I, gaussian_window, mode='wrap'))
@@ -116,16 +116,16 @@ Hq_Q = 0.5*1j*(q - qd)
 psi_initial = qt.basis(qubit_levels, 0)
 psi_target = qt.basis(qubit_levels, 1)
 
-# QI = pulse[0]
-# QQ = pulse[1]
+QI = pulse[0]
+QQ = pulse[1]
 # QI = np.sin(w*times)
 # QQ = np.cos(w*times)
 sig = 1.0
 A = np.sqrt(np.pi/1)/(2*sig)
 # QI = np.exp((-(times-T/2)**2)/(1*(sig)**2))*A
-QI = gauss(sig, A, times, T/2)*np.sin(2*times)
-QQ = gauss(sig, A, times, T/2) * ((times - T/2) /
-                                  (2*alpha * (sig**2)))*np.cos(w*times)
+# QI = gauss(sig, A, times, T/2)*np.sin(2*times)
+# QQ = gauss(sig, A, times, T/2) * ((times - T/2) /
+#                                   (2*alpha * (sig**2)))*np.cos(w*times)
 # QQ = (np.exp((-(times-T/2)**2)/(1*(sig)**2)) *
 #   (times-T/2)/(alpha*sig**2))*A
 
@@ -139,9 +139,9 @@ test_pulse = grape.GrapePulse(psi_initial, psi_target, T, Ns, H0, [Hq_I, Hq_Q], 
 # -- Cost Function Optimization - -
 # test_pulse.run_operator(pulse, show_prob=True)
 # print("3-level before DRAG: ", test_pulse.run_operator(pulse))
-test_pulse.cost(pulse*2)
-test_pulse.cost_gradient(pulse*2, debug_fidelity=True)
-# pulse, fidelity = test_pulse.optimize()
+# test_pulse.cost(pulse*2)
+# test_pulse.cost_gradient(pulse*2, debug_fidelity=True)
+pulse, fidelity = test_pulse.optimize()
 
 # print("Total time: ", time.time() - itime)
 

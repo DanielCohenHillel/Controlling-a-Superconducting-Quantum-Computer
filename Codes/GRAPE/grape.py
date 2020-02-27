@@ -326,15 +326,15 @@ class GrapePulse:
 
             # -- Forbiden Constraint Gradient ---
             for k in range(self.Ns):
-                for i in range(k, self.Ns):
-                    for j in range(self.Nd):
-                        phi = state_2 @ psi_bwd_inv[i] @ psi_bwd[k]
-                        overlap = 1j * self.dt * \
-                            phi @ self.drive_hamiltonians[j] @ psi_fwd[k+1]
-                        cc = state_2 @ psi_fwd[i+1]
+                # for i in range(k, self.Ns):
+                for j in range(self.Nd):
+                    phi = state_2 @ psi_bwd_inv[k:-1] @ psi_bwd[k]
+                    overlap = 1j * self.dt * \
+                        phi @ self.drive_hamiltonians[j] @ psi_fwd[k+1]
+                    cc = state_2 @ psi_fwd[k+1:]
 
-                        g_drag[j, k] += self.lambda_drag*2 * \
-                            np.real(cc * np.conjugate(overlap[0]))
+                    g_drag[j, k] = np.sum(self.lambda_drag*2 *
+                                          np.real(cc * np.conjugate(overlap)))
             print("drag grad time ", time.time() - itime)
 
         # --- Total ---
