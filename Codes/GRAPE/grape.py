@@ -8,7 +8,7 @@ import qutip as qt
 import warnings
 import scipy.linalg
 # warnings.filterwarnings('ignore')
-a = 0.4*0
+# a = 0.4*0
 state_2 = np.array([0, 0, 1])
 int_pen = 1*0
 n_ph = 5
@@ -57,7 +57,7 @@ class GrapePulse:
 
     def __init__(self, psi_initial, psi_target,  total_time, Ns, base_hamiltonian, drive_hamiltonians,
                  initial_pulse, constraints=True, max_amp=1, epsilon_soft_max=1, lambda_band_lin=0.1,
-                 lambda_amp_lin=0.03, fix_amp_max=True, print_fidelity=False, drag=False):
+                 lambda_amp_lin=0.03, lambda_drag=0.1, fix_amp_max=True, print_fidelity=False, drag=False):
         try:
             # TODO: Change to auto initialize
             self.psi_initial = np.array(psi_initial)
@@ -75,6 +75,7 @@ class GrapePulse:
             self.epsilon_soft_max = np.float(epsilon_soft_max)
             self.lambda_band_lin = np.float(lambda_band_lin)
             self.lambda_amp_lin = np.float(lambda_amp_lin)
+            self.lambda_drag = np.float(lambda_drag)
             self.fix_amp_max = bool(fix_amp_max)
             self.print_fidelity = bool(print_fidelity)
             self.drag = bool(drag)
@@ -108,13 +109,12 @@ class GrapePulse:
             self.psi_target = np.reshape(
                 self.psi_target, (self.psi_target.shape[0], 1))
 
-        # Check that initial and target qubit states are actually qubit states in terms of dimensions
+        # Check if initial and target states match in dimensions
         init_shape = self.psi_initial.shape
         targ_shape = self.psi_target.shape
-        # if not (init_shape == (2,) and targ_shape == (2,)):
-        # raise ValueError('Non-pure quantum states are not currently supported in this GRAPE implementation, Make'
-        # 'sure psi_initial and psi_target are of shape (2,). \npsi_initial=' + str(init_shape)
-        # + '\npsi_target=' + str(targ_shape))
+        if not (init_shape == targ_shape):
+            raise ValueError("Initial state dimensions " + str(init_shape)
+                             + " must match target state dimensions " + str(targ_shape))
 
         # Checks if initial pulse is of correct dimensions based on the amount of drives
         if not(self.initial_pulse.flatten().shape == (self.Nd * self.Ns),):
@@ -163,7 +163,7 @@ class GrapePulse:
         pulse = in_pulse.reshape(self.Nd, self.Ns)
 
         fid = self.run_operator(pulse)
-        # print("===> ", self.constraints * self.constraint(pulse))
+
         fid_total = fid - self.constraints * self.constraint(pulse)
         return -fid_total
 
@@ -176,7 +176,7 @@ class GrapePulse:
         """
         # Reshape pulse the a more comfertable format [drive, time step]
         pulse = in_pulse.reshape(self.Nd, self.Ns)
-        # U = self.U
+
         U = self.eigy_expm((1j * self.dt) * self.H(pulse))
 
         # -- psi_fwd --
@@ -185,40 +185,30 @@ class GrapePulse:
             if k == 0:
                 psi_fwd.append(self.psi_initial)
             else:
-                # print(k, "->\n", psi_fwd[-1])
                 psi_fwd.append(U[k - 1] @ psi_fwd[-1])
         psi_fwd = np.array(psi_fwd)
-        # print(psi_fwd.shape)
-        # self.psi_fwd = psi_fwd
 
         # -- psi_bwd --
-        # psi_bwd = np.array(
-        # [np.identity(self.dims)]*(self.Ns+1), dtype=complex)
-        # psi_bwd[-2] = U[-1]
         psi_bwd = np.array([np.identity(len(self.psi_initial))]
                            * (self.Ns+1), dtype=complex)
 
         for k in reversed(range(self.Ns)):
             psi_bwd[k] = psi_bwd[k+1]@U[k]
+
+        # -- phi_bwd --
         phi_bwd = np.zeros([self.Ns+1, 1, len(self.psi_target)], dtype=complex)
 
-        # Multiply the U product by <psi_target| from the left
-        # for k in range(self.Ns + 1):
-        #     psi_bwd[k] = (self.psi_target.conj().T @ psi_bwd[k])
+        # Multiply psi_bwd by <psi_target| from the left into phi_bwd
         for k in range(self.Ns + 1):
             phi_bwd[k] = (self.psi_target.conj().T @ psi_bwd[k])[0]
-        # print("bwd - >\n", psi_bwd[0])
-        # print("f_bwd - >\n", phi_bwd[0])
-        # print(k, "->\n", phi_bwd[k])
 
-        # print("fwd-0: ", psi_fwd[0])
-        # print("bwd-N: ", phi_bwd[-1])
+        # -- Overlap Gradient --
         dc = np.ndarray(self.Ns * self.Nd, dtype=complex)
         for i, H_k in enumerate(self.drive_hamiltonians):
             for k in range(self.Ns):
-                # print((phi_bwd[k+1] @ H_k @ psi_fwd[k+1])[0, 0].shape)
                 dc[k + i*self.Ns] = (phi_bwd[k+1] @ H_k @ psi_fwd[k+1])[0]
 
+        # -- Overlap --
         prod = np.identity(len(self.psi_initial))
         for k in range(self.Ns):
             prod = U[k] @ prod
@@ -283,29 +273,11 @@ class GrapePulse:
 
             # -- Forbidden --
             forb_const = np.sum(np.abs(state_2 @ psi_fwd)**2)
-            forb_const *= a
+            forb_const *= self.lambda_drag
             constraint_total = forb_const
 
-        int_const = 0
-        for i in range(self.Nd):
-            int_const += np.average(pulse[i])**2
-        int_const /= self.Nd
-
-        # dur_const = 0
-        # U = self.eigy_expm((1j * self.dt) * self.H(pulse))
-
-        # prod = np.identity(2)
-        # for k in range(self.Ns):
-        #     prod = U[k] @ prod
-        #     psi_k = prod @ self.psi_initial
-
-        #     c = (self.psi_target.conj().T @ psi_k)
-        #     # print(c)
-        #     dur_const += (1-np.abs(c)**2)
         # --- Total ---
-        constraint_total += amp_const + band_const + \
-            int_const*int_pen  # + dur_const*0.09
-        # print(constraint_total)
+        constraint_total += amp_const + band_const
         return constraint_total.flatten()
 
     def constraint_gradient(self, pulse):
@@ -359,15 +331,11 @@ class GrapePulse:
                             phi @ self.drive_hamiltonians[j] @ psi_fwd[k+1]
                         cc = state_2 @ psi_fwd[i+1]
 
-                        g_drag[j, k] += a*2 * \
+                        g_drag[j, k] += self.lambda_drag*2 * \
                             np.real(cc * np.conjugate(overlap[0]))
 
-        g_int = np.zeros(pulse.shape)
-        for i in range(self.Nd):
-            g_int += 2*np.average(pulse[i])/float(self.Ns)
-        g_int /= self.Nd
         # --- Total ---
-        constraint_total = g_band_lin + g_amp_lin + g_drag*a + g_int*int_pen
+        constraint_total = g_band_lin + g_amp_lin + g_drag
         return constraint_total.flatten()
 
     def cav_cost(self, pulse, kind='cost'):
@@ -392,9 +360,6 @@ class GrapePulse:
         for i in range(shape_cav[0][1]):
             cavity_init[i] = np.abs(cavity_qobj_init[i][0][i])
             cavity_target[i] = np.abs(cavity_qobj_target[i][0][i])
-
-        # print(qubit_init)
-        # print(np.array([np.append(cavity_init, [0])]).T)
 
         og_cavity_init = cavity_init
         og_cavity_target = cavity_target
@@ -470,8 +435,6 @@ class GrapePulse:
         """
         prod = np.identity(self.dims)
         U = self.eigy_expm((1j * self.dt) * self.H(pulse))
-        # print(U[0].shape)
-        # print(prod.shape)
         self.U = U
         if show_bloch:
             B = qt.Bloch()
@@ -485,23 +448,20 @@ class GrapePulse:
                 [self.dims, self.Ns])
             final_prob = np.zeros(
                 [self.dims, self.Ns])
-            # fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
-            # ax1.set_title("Initial Level Population Over Time")
-            # ax2.set_title("Final Level PopulationTime")
+            fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+            ax1.set_title("Initial Level Population Over Time")
+            ax2.set_title("Final Level PopulationTime")
 
-            # ax1.set_xlabel("Time")
-            # ax1.set_ylabel("Amplitude")
-            # ax2.set_xlabel("Time")
-            # ax2.set_ylabel("Amplitude")
-            plt.figure()
+            ax1.set_xlabel("Time")
+            ax1.set_ylabel("Amplitude")
+            ax2.set_xlabel("Time")
+            ax2.set_ylabel("Amplitude")
             leg = []
             wig = []
             N_cav = int(self.dims/2)
             for i in range(self.dims):
-                # print(N_cav)
                 prod = np.identity(self.dims)
                 prodi = np.identity(self.dims)
-                # leg.append("|" + str(i) + ">")
                 if i < N_cav:
                     leg.append(r'$|g> \otimes |{}>$'.format(str(i)))
                 else:
@@ -514,25 +474,20 @@ class GrapePulse:
                         (prodi @ self.psi_initial)[i]) ** 2
                     final_prob[i, k] = np.abs(
                         (prod @ self.psi_initial)[i]) ** 2
-                # ax1.plot(self.times, initial_prob[i, :])
-                # ax2.plot(self.times, final_prob[i, :])
-                plt.plot(self.times, final_prob[i, :])
-                plt.xlabel("Time")
-                plt.ylabel("Population %")
-                plt.title(
-                    "Level Population Over the Duration of the Optimized Pulse")
-            # ax1.legend(leg)
+                ax1.plot(self.times, initial_prob[i, :])
+                ax2.plot(self.times, final_prob[i, :])
+            ax1.legend(leg)
             psi_final = prod @ self.psi_initial
             return psi_final
         else:
+            states_qobjs = []
             for k in range(self.Ns):
                 prod = U[k] @ prod
                 if show_bloch:
-                    print((prod @ self.psi_initial).shape)
-                    B.add_points(prod @ self.psi_initial)
-                    time.sleep(0.1)
+                    states_qobjs.append(qt.Qobj(prod @ self.psi_initial))
             psi_final = prod @ self.psi_initial
         if show_bloch:
+            B.add_states(states_qobjs, kind='point')
             B.show()
         if calc_fidelity:
             c = (self.psi_target.conj().T @ psi_final)[0, 0]
@@ -561,7 +516,6 @@ class GrapePulse:
             return np.einsum('...ik, ...k, ...kj -> ...ij',
                              vects, np.exp(vals), np.linalg.inv(vects))
         if method == "direct":
-            # print("\n\n\n -> ", A.shape, "\n\n")
             for i in range(len(A)):
                 A[i] = scipy.linalg.expm(A[i])
             return A
