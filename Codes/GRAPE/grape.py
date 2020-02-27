@@ -148,7 +148,7 @@ class GrapePulse:
                                          factr=1e12)
         else:
             result = spopt.fmin_l_bfgs_b(self.cost, self.initial_pulse,
-                                         self.cost_gradient, factr=1e12)
+                                         self.cost_gradient, factr=1e10)
         result = (result[0].reshape(self.Nd,
                                     self.Ns), result[1])
         self.run_operator(result[0], show_prob=True)
@@ -264,6 +264,7 @@ class GrapePulse:
         band_const = np.sum(slope**2)
         band_const *= self.lambda_band_lin
 
+        itime = time.time()
         # --- DRAG ---
         if self.drag:
             # -- psi_fwd --
@@ -275,7 +276,7 @@ class GrapePulse:
             forb_const = np.sum(np.abs(state_2 @ psi_fwd)**2)
             forb_const *= self.lambda_drag
             constraint_total = forb_const
-
+        print("drag time: ", time.time() - itime)
         # --- Total ---
         constraint_total += amp_const + band_const
         return constraint_total.flatten()
@@ -301,6 +302,7 @@ class GrapePulse:
 
         g_band_lin *= self.lambda_band_lin
 
+        itime = time.time()
         # --- DRAG ---
         g_drag = np.zeros(pulse.shape)
         if self.drag:
@@ -333,6 +335,7 @@ class GrapePulse:
 
                         g_drag[j, k] += self.lambda_drag*2 * \
                             np.real(cc * np.conjugate(overlap[0]))
+            print("drag grad time ", time.time() - itime)
 
         # --- Total ---
         constraint_total = g_band_lin + g_amp_lin + g_drag

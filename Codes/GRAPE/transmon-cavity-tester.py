@@ -27,7 +27,7 @@ w_c = 4.5
 chi = 2
 
 qubit_levels = 2
-cavity_levels = 50
+cavity_levels = 10
 
 psi_initial = tensor(basis(qubit_levels, 0), basis(cavity_levels, 0))
 psi_target = tensor(basis(qubit_levels, 0), basis(cavity_levels, 1))
