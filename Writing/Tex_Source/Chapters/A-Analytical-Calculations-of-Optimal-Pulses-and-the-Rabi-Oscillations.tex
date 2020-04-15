@@ -1,0 +1,122 @@
+\section{Analytical Calculations of Optimal Pulses} \label{appen:annalytic}
+Throughout chapter \ref{chap:optimal} we embarked on a journey finding optimal pulses with numerical methods, but it's important to note that in some specific cases we can calculate the solution analytically. This has more uses than for mathematical beauty, we can use these cases as test cases to debug our GRAPE algorithm.
+
+We're going to start with everyone's favourite, Shr\"{o}dinger's equation\footnote{Planck's reduced constant is set to $1$, $\hbar = 1$}
+\[
+    \dot{\psi} = -i \hat{H} \psi
+\]
+The qubit is in a general superposition of the ground and excited states
+\[
+    \psi = C_g (t) \ket{g} + C_e (t) \ket{e}
+\]
+where $C_g$ and $C_e$ are the probability amplitudes of the ground and excited states.
+
+Shr\"{o}dinger's equation now becomes
+\begin{equation} \label{eq:shrod-psi-explit}
+     \dot{C_g} (t) \ket{g} + \dot{C_e} (t) \ket{e} = -i \hat{H}_{atom}  (C_g (t) \ket{g} + C_e (t) \ket{e})
+\end{equation}
+
+The Hamiltonian of an atom interacting with a classical field (ignoring the cavity) was derived section \ref{sec:interaction-with_classical-field} and is given from equation \ref{eq:atom-field-class-int}. We can write it as
+\[
+    \hat{H}_{atom} = \omega_0 \hat{a}^\dag \hat{a} + \Omega (t)\hat{\sigma}_x= \omega_0\ket{e}\bra{e} + \Omega (t) (\ket{g}\bra{e} + \ket{e}\bra{g})
+\]
+Where $\Omega (t)$ is the electromagnetic field amplitude.
+
+Replacing $H_{atom}$ in equation  (\ref{eq:shrod-psi-explit}) with the expression we have for it the equation becomes
+\[
+    \dot{C_g} (t) \ket{g} + \dot{C_e} (t) \ket{e} = -i  (\ \omega_0\ket{e}\bra{e} + \Omega (t) (\ket{g}\bra{e} + \ket{e}\bra{g})\ )\cdot  (C_g (t) \ket{g} + C_e (t) \ket{e})
+\]
+Some algebra magic later (remembering that $\{\ket{g},\ket{e}\}$ constitutes an orthonormal basis, so $\braket{e}{e} = \braket{g}{g} = 1$ and $\braket{g}{e} = \braket{e}{g} = 0$)
+\[
+    \dot{C_g} (t) \ket{g} + \dot{C_e} (t) \ket{e} = -i \omega_0 C_e \ket{e} - i\Omega (t) (C_e\ket{g} + C_g \ket{e})
+\]
+We can left multiply this equation once with $\bra{g}$ and once with $\bra{e}$, getting the 2D system of differential equations
+\begin{align*}
+    \bra{g} \quad &\rightarrow \quad \dot{C_g} (t) = -i \Omega (t)C_e (t) \\
+    \bra{e} \quad &\rightarrow \quad \dot{C_e} (t) = -i \omega_0 C_e (t) - i\Omega (t) C_g (t)
+\end{align*} 
+Instead of looking at an arbitrary pulse $\Omega  (t)$, we can look at a sinusoidal pulse of the form $\Omega  (t) = \Omega_0 e^{i\omega t}$ where $\omega$ is the frequency of the pulse. The general equations now become
+\begin{align*}
+    &\dot{C_g} (t) = -i \Omega_0 e^{i\omega t}C_e (t) \\
+    &\dot{C_e} (t) = -i \omega_0 C_e (t) - i \Omega_0 e^{i\omega t} C_g (t)
+\end{align*}
+It's comfortable to make the unitary transformation
+\[
+    \alpha (t) \rightarrow C_g (t) \quad \beta (t) \rightarrow e^{i \omega t} C_e (t)
+\]
+and after substituting and a bit of algebra get the linear system of equations
+\begin{align*}
+    &\dot{\alpha} = i \Omega_0 \beta \\
+    &\dot{\beta} = i \Omega_0 \alpha + i \Delta \beta
+\end{align*}
+where $\Delta = \omega - \omega_0$ and is known as the detuning. Deriving the second equation over time and substituting $\dot{\alpha}$ with it's known expression we get the following differential equation for $\beta$
+\[
+    \ddot{\beta} - i \Delta \dot{\beta} + \Omega_0^2\beta = 0
+\]
+We can find the solution by "guessing" a solution of the form $\beta (t) = e^{A t}$ and when plugging that into the equation we get the quadratic
+\[
+    A^2 - i \Delta \cdot A + \frac{\Omega_0^2}{4} = 0
+\]
+Assuming my high school math teacher wasn't lying to me, the solutions to this equation are
+\[
+    A_{\pm} = \frac{i \Delta \pm i\sqrt{\Delta^2 + 4\Omega_0^2}}{2}
+\]
+We'll define the parameter
+\[
+    \Omega = \sqrt{\Delta^2 + 4\Omega_0^2}
+\]
+The two solutions we found constitute a basis of solution for the linear equation, so the general solution is of the form
+\[
+    \beta (t) = e^{i\frac{\Delta t}{2}} (C_1 e^{i \frac{\Omega t}{2}} + C_2 e^{-i \frac{\Omega t}{2}})
+\]
+We are looking for solutions that start at the ground state, this gives us an initial condition
+\begin{align*}
+    &\beta (0) = 0 \quad \Rightarrow \quad C_1 + C_2 = 0 \\
+    &\alpha (0) = 1 \quad \Rightarrow \quad \dot{\beta} (0) = i \Omega_0 = i \Omega C_1
+\end{align*}
+Plugging in the calculated coefficients and the solution becomes
+\[
+    \beta (t) = 2 i \frac{\Omega_0}{\Omega}e^{i \frac{\Delta t}{2}} \sin{ (\frac{\Omega}{2}t)}
+\]
+Remember that $\beta$ is the population of the excited state with the addition of a phase, the phase doesn't change the probabilities so
+\[
+    P_e (t) = \abs{C_e}^2 = \abs{\beta}^2 = \frac{\Omega_0^2}{\Omega^2} (1 - \cos{ (\Omega t)})
+\]
+where $P_e (t)$ is the probability for the atom to be in an excited state at time $t$.
+
+The result we got, where the atom oscillates between the ground and excited states is called \textbf{Rabi Oscillations}. Figure \ref{fig:rabi-oscillations} plots this result, once with zero detuning (and therefore $\Omega = \Omega_0$) and once with non zero detuning (and therefore $\Omega > \Omega_0$)
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1.0\columnwidth]{Rabi-Oscillations.png}
+    \caption{Rabi oscillations of atom in a classical electromagnetic field. The top graph is without detuning $\Delta = 0$ and the bottom graph is with detuning $\Delta \ne 0$}
+    \label{fig:rabi-oscillations}
+\end{figure}
+You can see that with zero detuning, the atom oscillates fully between ground and excited states. With non-zero detuning, the atom doesn't fully reach the excited state, it goes only part of the way and then goes back down. This means that if you want  to get to the excited states you need to send a pulse with exactly the same frequency as the atom.
+
+We can take everything we got so far and construct a pulse that will take the ground state into the excited state. First, the pulse must have the same frequency as the atom $\omega = \omega_0$. If the total duration of the pulse is T, then the excited state is fully populated at time $T$
+\[
+    P_e (T) = 1 =  (1 - \cos  (\Omega_0 T))
+\]
+And the solutions are
+\[
+    \Omega_0 = \frac{\pi k}{T} \quad \text{for} \quad k = 1, 2, 3, \dots
+\]
+Where $k$ corresponds to the amount of oscillations between the ground and excited states. Ideally the atom would go directly to the excited state without oscillating between the states, so we'll set $k = 1$.
+
+Putting it all together, for a two level atom with frequency $\omega_0$, and a pulse with duration $T$, the pulse you need to send to get from the ground state to the excited state is
+\[
+    \boxed{\Omega (t) = \frac{\pi}{T} e^{i \omega_0 t}}
+\]
+Where the real and imaginary parts correspond the sin and cos waves we send to the atom (or I and Q pulses if you prefer). Writing them explicitly we get
+\[
+    \boxed{\Omega_I  (t) = \frac{\pi }{T} \sin  (\omega_0 t)} \quad \text{and} \quad \boxed{\Omega_Q  (t) = \frac{\pi}{T} \cos  (\omega_0 t)}
+\]
+We can actually check using the simulation we made in chapter \ref{chap:optimal} and see that yes! These pulses lead to the qubit going from the ground to excited states, amazing!
+
+There is actually a more general result about \textit{$\pi$-pulses} we can see from here, we won't prove it but we can see it works. Any pulse that satisfies
+\[
+    \int_0^T \Omega (t) dt = \pi
+\]
+Would take the ground state atom to the excited state. You can use a something like a Gaussian or any other weird pulse that satisfies this condition, and they will all work. We can see that indeed, the pulse we derived does satisfy it.
+
+There are actually many more examples we can find analytical solutions for. There are even analytical solution for the 3-level system and DRAG. We won't touch on them here, they are much more complicated, although they are definitely possible to calculate analytically.
