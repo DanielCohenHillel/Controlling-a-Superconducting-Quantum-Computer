@@ -7,6 +7,7 @@ from matplotlib.pyplot import subplots
 import qutip as qt
 import warnings
 import scipy.linalg
+import pandas as pd
 # warnings.filterwarnings('ignore')
 # a = 0.4*0
 state_2 = np.array([0, 0, 1])
@@ -134,7 +135,7 @@ class GrapePulse:
 
         return None
 
-    def optimize(self):
+    def optimize(self, graph_prob=False):
         """
         Optimize the pulse with the GRAPE algorithm
         :return: A tuple, the first is the final pulse(same dimensions as the initial pulse) and the second
@@ -148,11 +149,13 @@ class GrapePulse:
                                          factr=1e12)
         else:
             result = spopt.fmin_l_bfgs_b(self.cost, self.initial_pulse,
-                                         self.cost_gradient, factr=1e10)
-        result = (result[0].reshape(self.Nd,
-                                    self.Ns), result[1])
-        self.run_operator(result[0], show_prob=True)
-        return result[0:2]
+                                         self.cost_gradient, factr=1e12)
+
+        results = self.gen_result_dict(result[0].reshape(self.Nd, self.Ns), result[1]) 
+        if graph_prob:
+            self.run_operator(results["pulses"], show_prob=True)
+
+        return results
 
     def cost(self, in_pulse):
         """
@@ -276,7 +279,7 @@ class GrapePulse:
             forb_const = np.sum(np.abs(state_2 @ psi_fwd)**2)
             forb_const *= self.lambda_drag
             constraint_total = forb_const
-        print("drag time: ", time.time() - itime)
+        # print("drag time: ", time.time() - itime)
         # --- Total ---
         constraint_total += amp_const + band_const
         return constraint_total.flatten()
@@ -522,3 +525,17 @@ class GrapePulse:
             for i in range(len(A)):
                 A[i] = scipy.linalg.expm(A[i])
             return A
+
+    def gen_result_dict(self, pulses, fidelity, comments=""):
+        results = {
+            "pulses": pulses,
+            "fidelity": -fidelity[0],
+            "Hamiltonian": {
+                "constant": self.base_hamiltonian,
+                "drives": self.drive_hamiltonians
+            },
+            "dimensions": self.dims,  # TODO: Change to actual dimensions
+            "comments": comments
+        }
+        self.results = results
+        return results
