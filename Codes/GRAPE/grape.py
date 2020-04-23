@@ -7,7 +7,7 @@ from matplotlib.pyplot import subplots
 import qutip as qt
 import warnings
 import scipy.linalg
-import pandas as pd
+import toolbox
 # warnings.filterwarnings('ignore')
 # a = 0.4*0
 state_2 = np.array([0, 0, 1])
@@ -146,10 +146,10 @@ class GrapePulse:
             result = spopt.fmin_l_bfgs_b(self.cost,
                                          np.arctanh(
                                              self.initial_pulse / self.max_amp), self.cost_gradient,
-                                         factr=1e12)
+                                         factr=1e10)
         else:
             result = spopt.fmin_l_bfgs_b(self.cost, self.initial_pulse,
-                                         self.cost_gradient, factr=1e12)
+                                         self.cost_gradient, factr=1e10)
 
         results = self.gen_result_dict(result[0].reshape(self.Nd, self.Ns), result[1]) 
         if graph_prob:
@@ -179,8 +179,8 @@ class GrapePulse:
         """
         # Reshape pulse the a more comfertable format [drive, time step]
         pulse = in_pulse.reshape(self.Nd, self.Ns)
-
-        U = self.eigy_expm((1j * self.dt) * self.H(pulse))
+        
+        U = toolbox.expm((1j * self.dt) * self.H(pulse))
 
         # -- psi_fwd --
         psi_fwd = []
@@ -310,7 +310,7 @@ class GrapePulse:
         g_drag = np.zeros(pulse.shape)
         if self.drag:
             # U = self.U
-            U = self.eigy_expm((1j * self.dt) * self.H(pulse))
+            U = toolbox.expm((1j * self.dt) * self.H(pulse))
             psi_fwd = [self.psi_initial]
             for k in range(self.Ns):
                 psi_fwd.append(U[k] @ psi_fwd[-1])
@@ -338,7 +338,7 @@ class GrapePulse:
 
                     g_drag[j, k] = np.sum(self.lambda_drag*2 *
                                           np.real(cc * np.conjugate(overlap)))
-            print("drag grad time ", time.time() - itime)
+            # print("drag grad time ", time.time() - itime)
 
         # --- Total ---
         constraint_total = g_band_lin + g_amp_lin + g_drag
@@ -440,7 +440,7 @@ class GrapePulse:
         :return:
         """
         prod = np.identity(self.dims)
-        U = self.eigy_expm((1j * self.dt) * self.H(pulse))
+        U = toolbox.expm((1j * self.dt) * self.H(pulse))
         self.U = U
         if show_bloch:
             B = qt.Bloch()
@@ -448,7 +448,7 @@ class GrapePulse:
             B.add_states(qt.Qobj(self.psi_target))
 
         if show_prob:
-            Ui = self.eigy_expm((1j * self.dt) *
+            Ui = toolbox.expm((1j * self.dt) *
                                 self.H(np.reshape(self.initial_pulse, (self.Nd, self.Ns))))
             initial_prob = np.zeros(
                 [self.dims, self.Ns])
@@ -515,16 +515,6 @@ class GrapePulse:
         for i, H_k in enumerate(self.drive_hamiltonians):
             H += pulse[i, :].reshape(self.Ns, 1, 1)*H_k
         return H
-
-    def eigy_expm(self, A, method="eigen"):
-        if method == "eigen":
-            vals, vects = np.linalg.eig(A)
-            return np.einsum('...ik, ...k, ...kj -> ...ij',
-                             vects, np.exp(vals), np.linalg.inv(vects))
-        if method == "direct":
-            for i in range(len(A)):
-                A[i] = scipy.linalg.expm(A[i])
-            return A
 
     def gen_result_dict(self, pulses, fidelity, comments=""):
         results = {
