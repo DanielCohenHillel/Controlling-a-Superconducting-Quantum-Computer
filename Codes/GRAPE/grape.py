@@ -151,7 +151,8 @@ class GrapePulse:
             result = spopt.fmin_l_bfgs_b(self.cost, self.initial_pulse,
                                          self.cost_gradient, factr=1e10)
 
-        results = self.gen_result_dict(result[0].reshape(self.Nd, self.Ns), result[1]) 
+        results = self.gen_result_dict(
+            result[0].reshape(self.Nd, self.Ns), result[1])
         if graph_prob:
             self.run_operator(results["pulses"], show_prob=True)
 
@@ -179,7 +180,7 @@ class GrapePulse:
         """
         # Reshape pulse the a more comfertable format [drive, time step]
         pulse = in_pulse.reshape(self.Nd, self.Ns)
-        
+
         U = toolbox.expm((1j * self.dt) * self.H(pulse))
 
         # -- psi_fwd --
@@ -227,7 +228,7 @@ class GrapePulse:
         # --- Debugging Tool ---
         if debug_fidelity:
             c_fin_transpose = np.transpose(-gradient)
-            fig, axes = subplots(3)
+            _, axes = subplots(3)
             axes[0].set_title("gradient")
             axes[0].plot(
                 self.times, -c_fin_transpose[0:self.Ns])
@@ -267,7 +268,6 @@ class GrapePulse:
         band_const = np.sum(slope**2)
         band_const *= self.lambda_band_lin
 
-        itime = time.time()
         # --- DRAG ---
         if self.drag:
             # -- psi_fwd --
@@ -279,7 +279,6 @@ class GrapePulse:
             forb_const = np.sum(np.abs(state_2 @ psi_fwd)**2)
             forb_const *= self.lambda_drag
             constraint_total = forb_const
-        # print("drag time: ", time.time() - itime)
         # --- Total ---
         constraint_total += amp_const + band_const
         return constraint_total.flatten()
@@ -305,7 +304,6 @@ class GrapePulse:
 
         g_band_lin *= self.lambda_band_lin
 
-        itime = time.time()
         # --- DRAG ---
         g_drag = np.zeros(pulse.shape)
         if self.drag:
@@ -338,7 +336,6 @@ class GrapePulse:
 
                     g_drag[j, k] = np.sum(self.lambda_drag*2 *
                                           np.real(cc * np.conjugate(overlap)))
-            # print("drag grad time ", time.time() - itime)
 
         # --- Total ---
         constraint_total = g_band_lin + g_amp_lin + g_drag
@@ -449,12 +446,12 @@ class GrapePulse:
 
         if show_prob:
             Ui = toolbox.expm((1j * self.dt) *
-                                self.H(np.reshape(self.initial_pulse, (self.Nd, self.Ns))))
+                              self.H(np.reshape(self.initial_pulse, (self.Nd, self.Ns))))
             initial_prob = np.zeros(
                 [self.dims, self.Ns])
             final_prob = np.zeros(
                 [self.dims, self.Ns])
-            fig, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+            _, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
             ax1.set_title("Initial Level Population Over Time")
             ax2.set_title("Final Level PopulationTime")
 
@@ -463,7 +460,7 @@ class GrapePulse:
             ax2.set_xlabel("Time")
             ax2.set_ylabel("Amplitude")
             leg = []
-            wig = []
+            # wig = []
             N_cav = int(self.dims/2)
             for i in range(self.dims):
                 prod = np.identity(self.dims)
