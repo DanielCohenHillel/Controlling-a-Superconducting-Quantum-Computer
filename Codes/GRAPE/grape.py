@@ -58,7 +58,7 @@ class GrapePulse:
 
     def __init__(self, psi_initial, psi_target,  total_time, Ns, base_hamiltonian, drive_hamiltonians,
                  initial_pulse, constraints=True, max_amp=1, epsilon_soft_max=1, lambda_band_lin=0.1,
-                 lambda_amp_lin=0.03, lambda_drag=0.1, fix_amp_max=True, print_fidelity=False, drag=False):
+                 lambda_amp_lin=0.03, lambda_drag=0.1, fix_amp_max=True, print_fidelity=True, drag=False):
         try:
             # TODO: Change to auto initialize
             self.psi_initial = np.array(psi_initial)
@@ -90,6 +90,8 @@ class GrapePulse:
         self.dims = len(self.psi_initial)
 
         self._check_input()
+
+        self.count = 0
 
     def _check_input(self):
         """
@@ -141,6 +143,8 @@ class GrapePulse:
         :return: A tuple, the first is the final pulse(same dimensions as the initial pulse) and the second
         is the final fidelity achieved by GRAPE, success is roughly if fidelity > 0.999
         """
+        print('\33[1m == Starting Optimization == \33[0m')
+        print('Doing quantum magic, please wait\N{grinning face}\n')
         # Using the L-BFGS-B optimization algorithm to find the minimum of the cost function
         if self.fix_amp_max:
             result = spopt.fmin_l_bfgs_b(self.cost,
@@ -155,6 +159,10 @@ class GrapePulse:
             result[0].reshape(self.Nd, self.Ns), result[1])
         if graph_prob:
             self.run_operator(results["pulses"], show_prob=True)
+
+        print('\n\n\33[1m\33[32m == Optimization finished successfuly'
+              f'after {self.count} epochs ==\33[0m')
+        self.count = 0
 
         return results
 
@@ -245,7 +253,7 @@ class GrapePulse:
             axes[2].plot(self.times, pulse[0])
             axes[2].set_title("QQ")
             axes[2].plot(self.times, pulse[1])
-            print("All cose: ", np.allclose(
+            print("All close: ", np.allclose(
                 grad[1: -1], c_fin_transpose[1:-1], rtol=1),)
 
         return -gradient
@@ -451,7 +459,7 @@ class GrapePulse:
                 [self.dims, self.Ns])
             final_prob = np.zeros(
                 [self.dims, self.Ns])
-            _, (ax1, ax2) = plt.subplots(1, 2, sharey=True)
+            _, (ax1, ax2) = plt.subplots(1, 2, sharey=True, figsize=(10, 5))
             ax1.set_title("Initial Level Population Over Time")
             ax2.set_title("Final Level PopulationTime")
 
@@ -496,7 +504,12 @@ class GrapePulse:
             c = (self.psi_target.conj().T @ psi_final)[0, 0]
             self.c = c
             fid = np.abs(c) ** 2
-            print("\n-> Fidelity: ", fid) if self.print_fidelity else None
+            print(f" Epoch {self.count+1} ➞ \33[1m Fidelity: "
+                  f"\33[35m{100*fid:0.2f}%\33[0m  "
+                  f"[{'#'*int(fid*40)}{'.'*int(40-fid*40)}]   ",
+                  end='\r') if self.print_fidelity else None
+            time.sleep(0.2)
+            self.count += 1
             return fid
         return psi_final
 

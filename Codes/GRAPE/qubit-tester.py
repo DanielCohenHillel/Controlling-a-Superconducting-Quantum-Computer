@@ -5,11 +5,7 @@ import matplotlib.pyplot as plt
 import grape  # This is mine :)
 import time
 import scipy.ndimage as ndi
-# plt.style.use("nice_style")
-plt.style.use("fivethirtyeight")
-# plt.style.use("grayscale")
-# plt.style.use("ggplot")
-# plt.style.use("seaborn-white")
+plt.style.use("ggplot")
 
 
 def gaussian(size, sigma, amp, graph=False):
@@ -47,7 +43,7 @@ Hq_Q = 1j*(q - qd)
 
 # -- Time variables --
 T = 20  # 1/alpha
-Ns = 50
+Ns = 50000
 
 dt = T/Ns
 times = np.linspace(0.0, T, Ns)
@@ -100,7 +96,7 @@ pulse = results["pulses"]
 fidelity = results["fidelity"]
 # test_pulse.run_operator(pulse, show_prob=True)
 
-print("Going to DRAG")
+# print("Going to DRAG")
 # qubit_levels = 3
 
 # # -- Basic operators --
