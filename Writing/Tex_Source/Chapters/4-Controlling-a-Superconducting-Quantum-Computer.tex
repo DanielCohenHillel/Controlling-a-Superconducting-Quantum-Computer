@@ -74,7 +74,7 @@ If we use a spectrum analyzer and view what frequencies are in the final wave we
 Zooming in around the LO frequency we see
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.8\columnwidth]{Important-Spectrum-no-correction.jpg} %TODO: Need to change the image to one with marking explaining it on it (what is each spike)
+    \includegraphics[width=0.9\columnwidth]{Important-Spectrum-no-correction2.png} 
     \caption{Spectrum Around the LO Frequency}
     \label{fig:closeup-spectrum-no-corrections}
 \end{figure}
@@ -151,6 +151,13 @@ We have a 2-dimensional variable space, we need to find where in this space the 
 Now that we've minimized the LO frequency leakage, we want to minimize the sideband leakage. We do that by changing the phases of the IQ waves from the quantum machine, it's important that changing the phases doesn't change the LO leakage and luckily for us, as proven in section \ref{sec:solution_real_world} that's whats happening. to change the phases we don't simply specify the phases, we use the correction matrix of the Quantum Machine.
 This time our cost function is the frequency at $\omega_{LO} - \omega_{IQ}$, we can do the same as we did in the LO leakage and use first a brute force optimization to find the general location of the minimum and the use the fmin algorithm to find the exact location of the minimum of the cost function (this time in the scale-angle variable space). You can see the result here
 % TODO: Add figure of full final optimization, Explain why it doesn't work perfectly (The quantum machine power problem)
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\columnwidth]{Important-Spectrum-all-correction2.png} 
+    \caption{Spectrum Around the LO Frequency}
+    \label{fig:closeup-spectrum-no-corrections}
+\end{figure}
+The other frequencies aren't completely reduced because nothing is perfect, but ir's pretty close and good enough for this demonstration.
 
 \subsection{References and Further Readings}
 A great book on couplers and mixers I used while writing this chapter is "\textbf{Microwave Engineering}" by David M. Pozar. It provides a much more in depth look on the subject.
