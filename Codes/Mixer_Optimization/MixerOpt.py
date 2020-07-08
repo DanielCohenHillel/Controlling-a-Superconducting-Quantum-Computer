@@ -4,6 +4,7 @@ from qm.qua import *
 import numpy as np
 import qcodes.instrument_drivers.signal_hound.USB_SA124B
 from scipy.optimize import fmin, brute
+from sys import exit
 
 
 def optimize():
@@ -13,28 +14,26 @@ def optimize():
     """
 
     # Connects to the quantum machine through the network
-    qmManager = QuantumMachinesManager(host='132.77.48.245')
+    qmManager = QuantumMachinesManager()
 
     # Initial guess for the best offsets
     # Initial guess for correction variables corvars = [0, 1]
-    offsets = [-0.08712208, 0.02583852]
+    offsets = [-0.02505083, -0.03288917]
+    corvars = [0.50478125, 0.74776809]
     DC_I = offsets[0]
     DC_Q = offsets[1]
-    # correction = calc_cmat(corvars[0], corvars[1])
+    correction = calc_cmat(corvars[0], corvars[1])
 
     # Searching parameters, range of parameters for brute force, num of step in the brute force and max iteration fmin
     # OFFSETS
-    nstepbruteoffset = 20  # Num of steps in the initial brute force stage(N^2)
-    # Range to look in the inital brute force stage
-    rangebruteoffset = [(-0.1, 0.1), (-0.1, 0.1)]
-    maxiterfminoffset = 100  # maximum number of iteration in the fmin stage
+    nstepbruteoffset  = 10                          # Num of steps in the initial brute force stage(N^2)
+    rangebruteoffset  = [(-0.1, 0.1), (-0.1, 0.1)]  # Range to look in the inital brute force stage
+    maxiterfminoffset = 100                         # maximum number of iteration in the fmin stage
 
     # CORRECTION VARIABLES
-    # Num of steps in the initial brute force stage(N^2)
-    nstepbrutecorvars = 20
-    # Range to look in the inital brute force stage
-    rangebrutecorvars = [(-0.3, 0.3), (0.6, 1.3)]
-    maxiterfmincorvars = 100  # maximum number of iteration in the fmin stage
+    nstepbrutecorvars = 20                         # Num of steps in the initial brute force stage(N^2)
+    rangebrutecorvars = [(0.4, 0.6), (0.6, 1)]  # Range to look in the inital brute force stage
+    maxiterfmincorvars = 100                       # maximum number of iteration in the fmin stage
 
     # Try to initialize the spectrum analyzer
     try:
@@ -58,14 +57,11 @@ def optimize():
         qm1 = qmManager.open_qm(config)
         job = qm1.execute(prog, forceExecution=True)
 
-        offsets = brute(power, rangebruteoffset, args=(
-            corvars, qm1, inst, 'offset'), Ns=nstepbruteoffset, finish=None)
+        offsets = brute(power, rangebruteoffset, args=(corvars, qm1, inst, 'offset'), Ns=nstepbruteoffset, finish=None)
 
-        print(
-            '\n    Initial guess for the offsets [DC_I, DC_Q]: ', offsets, "\n\n")
+        print('\n    Initial guess for the offsets [DC_I, DC_Q]: ', offsets, "\n\n")
         # Using fmin function to find the best offsets to minimize the leakage
-        xopt = fmin(power, offsets, (corvars, qm1, inst,
-                                     'offset'), maxiter=maxiterfminoffset)
+        xopt = fmin(power, offsets, (corvars, qm1, inst, 'offset'), maxiter=maxiterfminoffset)
 
     # If there's an error trying to use the "power" function
     except Exception as e:
@@ -98,11 +94,13 @@ def optimize():
 
     inst.close()  # Closes the instrument
 
-    print("\n--------------------------------------------------------------------------------\n\n"
-          "Final results: \n"
-          "Offsets [DC_I, DC_Q]: " + str(offsets) +
-          "\nCorrection variables [theta, k]: " + str(corvars) +
-          "\n\n--------------------------------------------------------------------------------\n")
+    print("""
+    ---------------------------------------------------------------------------
+    Final reslults:
+        * Offsets [DC_I, DC_Q]: {}
+        * Correction variables: {}
+    ---------------------------------------------------------------------------
+    """.format(offsets, corvars))
 
 
 def power(offsets, corvars, qm, inst, searchfor):
@@ -115,7 +113,6 @@ def power(offsets, corvars, qm, inst, searchfor):
     :param searchfor: String that tells the function what is being optimized, 'offset' or 'correction'
     :return: The power of the frequency at the instrument's center frequency
     """
-
     # DC offsets to separate variables
     DC_I = offsets[0]
     DC_Q = offsets[1]
@@ -126,20 +123,20 @@ def power(offsets, corvars, qm, inst, searchfor):
     correction = calc_cmat(th, k)
     # correction = calc_cmat(sigmoid(th)*np.pi, sigmoid(k)*0.6 + 0.7)
 
+
     # The "heart" of the function, sends the quantum machine a command to change the offsets and corrections
     if searchfor == 'offset':
         qm.set_dc_offset_by_qe('qe1', 'I', float(DC_I))
         qm.set_dc_offset_by_qe('qe1', 'Q', float(DC_Q))
     else:
-        qm.set_correction('qe1', correction)
+        # qm.set_correction('qe1', correction)
+        qm.set_mixer_correction('my_mixer', int(25e6), int(0), correction)
 
     # Read the power of the leakage frequency, this is what we want to minimize
     p = inst.get('power')
 
     # Prints the result of each iteration
-    print("Offsets [DC_I, DC_Q]: " + str(offsets)
-          + "  |  Correction variables [theta, k]: "
-            + str(corvars) + " => " + str(p))
+    print("Offsets [DC_I, DC_Q]: {}  |  Correction variables [theta, k]: {} => {:.2f}".format([round(i,3) for i in offsets],[round(i,3) for i in corvars] , p))
 
     return p  # Return the power of the leakage frequency
 
@@ -150,6 +147,7 @@ def powerdiffargs(corvars, offsets, qm, inst):
 
 
 def setconf(DC_I, DC_Q, correction):
+    # sourcery skip: inline-immediately-returned-variable
     """
     Sets the config for the quantum controller gor given DC offsets
     :param DC_I: DC offset I
@@ -158,8 +156,8 @@ def setconf(DC_I, DC_Q, correction):
     :return: The config for the quantum machine
     """
     # Sets ports
-    port_I = 7
-    port_Q = 8
+    port_I = 1
+    port_Q = 9
 
     LO_freq = 0
     f0 = LO_freq + 25e6
@@ -169,7 +167,7 @@ def setconf(DC_I, DC_Q, correction):
         'controllers': {
             'con1': {
                 'type': 'opx1',
-                'analog': {
+                'analog_outputs': {
                     port_I: {'offset': DC_I},
                     port_Q: {'offset': DC_Q}
                 }
@@ -184,7 +182,7 @@ def setconf(DC_I, DC_Q, correction):
                     'mixer': 'my_mixer',
                     'lo_frequency': LO_freq
                 },
-                'frequency': f0,
+                'intermediate_frequency': f0,
                 'operations': {
                     'pulse1': 'pulse1_in',
                 }
@@ -206,17 +204,17 @@ def setconf(DC_I, DC_Q, correction):
         'waveforms': {
             'wf1': {
                 'type': 'constant',
-                'sample': 0.1
+                'sample': 0.2
             },
             'wf2': {
                 'type': 'constant',
-                'sample': 0.1
+                'sample': 0.2
             }
 
         },
         "mixers": {
             "my_mixer": [
-                {"freq": f0, "lo_freq": LO_freq, "correction": correction}
+                {"intermediate_frequency": f0, "lo_frequency": LO_freq, "correction": correction}
             ]
         }
     }
@@ -236,9 +234,9 @@ def setinstrument(freq, span):
     mysa = qcodes.instrument_drivers.signal_hound.USB_SA124B.SignalHound_USB_SA124B(
         'mysa', dll_path=path)
 
-    print("\n------------------------------------------------------")
+    print("\n"+"-"*80)
     print(mysa.get_idn())  # Prints instrument's details
-    print("------------------------------------------------------\n")
+    print("-"*80+"\n")
 
     mysa.frequency(freq)  # Center of scanned region
     mysa.span(span)  # Width of scan region
@@ -257,8 +255,7 @@ def calc_cmat(th, k):
 
     R = [[np.sin(th), np.cos(th)], [np.cos(th), np.sin(th)]]
     c = [[k, 0], [0, 1 / k]]
-    M = np.dot(c, R).flatten().tolist()
-    return M
+    return np.dot(c, R).flatten().tolist()
 
 
 if __name__ == '__main__':
