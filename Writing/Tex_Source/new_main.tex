@@ -1,0 +1,74 @@
+\input{Chapters/Formating}
+\usepackage[english]{babel}
+
+\usepackage{multicol}
+% \setcounter{page}{4}
+\begin{document}
+\def\biblio{} % if not here a new reference list will be produced after every chapter
+\include{FrontPage}
+
+
+\restoregeometry % restores the margins after frontpage
+
+
+\newpage
+
+% --- Table of Contents ---
+\pagenumbering{gobble} % suppress page numbering
+\thispagestyle{plain} % suppress header
+\tableofcontents
+% \listoffigures
+
+\pagenumbering{arabic}
+
+% ----------------
+% --- Chapters ---
+% ----------------
+
+% --- Abstract ---
+\newpage
+\input{Chapters/0-Abstract}
+
+% --- Introduction ---
+\newpage
+% \begin{multicols}{2}
+\input{Chapters/1-Introduction}
+
+% --- Quantum Optics ---
+\newpage
+\input{Chapters/2-Quantum-Optics}
+
+% --- Optimal Control ---
+\newpage
+\input{Chapters/3-Optimal-Control}
+
+% --- Controlling a Superconducting Quantum Computer ---
+\newpage
+\input{Chapters/4-Controlling-a-Superconducting-Quantum-Computer}
+
+% --- Future Work and Conclusions ---
+\newpage
+\input{Chapters/5-Future-Work-and-Conclusions}
+
+% ----------------
+% --- Appendix ---
+% ----------------
+\appendix
+
+% --- Analytical Calculations ---
+\newpage
+\input{Chapters/A-Analytical-Calculations-of-Optimal-Pulses-and-the-Rabi-Oscillations}
+
+% --- Computational Graphs ---
+\newpage
+\input{Chapters/B-Computational-Graphs}
+
+% --- Quantizing Electric Circuit ---
+\newpage
+\input{Chapters/C-Quantizing-Electric-Circuit-and-the-Josephson-Junction}
+
+\newpage
+% \end{multicols}
+\end{document}
+
+
