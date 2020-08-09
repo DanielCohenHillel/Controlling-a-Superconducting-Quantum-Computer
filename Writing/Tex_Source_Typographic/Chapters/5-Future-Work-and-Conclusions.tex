@@ -1,0 +1,12 @@
+\chapter{Future Work and Conclusions}
+We conclude this project with the knowledge and tools to create and control quantum systems, from understanding them theoretically to connecting and calibrating the devices that actually send the control pulses, to creating the control pulses to create arbitrary quantum states and operations.
+
+As with anything in life, this project must to come to an end at some point, each subject we discuss opens a rabbit hole we'll never see the end of.
+
+A natural next step for this project would be to implement the gate GRAPE. explain exactly how the gate GRAPE from section \ref{sec:gate-GRAPE} works, and implement it in code. The gate GRAPE is the missing piece needed to actually creating quantum circuits, and it opens many possibilities for quantum computation and information.
+
+Another, pretty obvious, continuation to this project would be, actually implementing it, physically, in an experiment. This project is (almost) entirely theoretical and numerical, for all you know I was lying to you the hole time. It would be nice to actually check GRAPE on an actual quantum system. Unfortunately, at this point the Quantum Circuits Laboratory is not yet fully built and there is no fridge to cool the quantum system in.
+
+ Another worthwhile extension of this project is to develop numerically optimized operations for multiqubit systems. This shouldn't be that difficult since the qubit-qubit (or atom-atom) interaction aren't that different from the qubit-cavity interaction we already have, and our optimal control code accepts quantum states in any Hilbert space. Evidently, the main limitation would be the exponential time required for the numerics as the number of qubits grows. Luckily, in an actual quantum computer we will only want to perform local operations on a few qubits, while ignoring the rest. 
+
+% TODO: Refine this and maybe add a thanking paragraph
